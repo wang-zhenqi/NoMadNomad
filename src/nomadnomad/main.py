@@ -5,6 +5,8 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from nomadnomad.api.routes import router as api_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -20,12 +22,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
-
-    @app.get("/health")
-    async def health() -> dict[str, str]:
-        """健康检查."""
-        return {"status": "ok"}
-
+    app.include_router(api_router)
     return app
 
 
