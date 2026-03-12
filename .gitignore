@@ -1,0 +1,94 @@
+# NoMadNomad - 忽略不必要纳入版本控制的文件/目录
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ---- Poetry ----
+# 提交 poetry.lock 以锁定依赖（应用项目推荐）
+
+# ---- 虚拟环境 ----
+.venv/
+venv/
+ENV/
+env/
+
+# ---- asdf ----
+.tool-versions
+
+# ---- 测试与覆盖率 ----
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ---- 类型与质量 ----
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ---- 环境与密钥 ----
+.env
+.env.local
+.env.*.local
+*.pem
+.envrc
+
+# ---- IDE / 编辑器 ----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ---- 操作系统 ----
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+
+# ---- 项目本地 / 数据 ----
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+logs/
+*.log
+backups/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+*.ipynb
+
+# ---- Docker 本地 ----
+.docker/
+
+# ---- 构建与部署 ----
+*.manifest
+.cache

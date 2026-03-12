@@ -69,7 +69,7 @@ graph TB
     Orchestrator -- "按图调度, 传递上下文" --> Agent_RA
     Orchestrator -- "按图调度, 传递上下文" --> Agent_Proposal
     Orchestrator -- "按图调度, 传递上下文" --> Agent_Task
-    
+
     Agent_RA -- "读写结构化数据<br/>& 向量检索" --> DB
     Agent_Proposal -- "读写结构化数据<br/>& 向量检索" --> DB
     Agent_Task -- "读写结构化数据" --> DB
@@ -366,7 +366,7 @@ projects
 ### 6.1 本地开发环境
 
 #### 6.1.1 环境要求
-- Python 3.11+
+- Python 3.11.1
 - Docker Desktop
 - 内存：8GB+ (开发环境)
 - 存储：10GB+ 可用空间
@@ -434,7 +434,7 @@ services:
         limits:
           memory: 256M
           cpus: '0.5'
-  
+
   frontend:
     build: ./frontend
     ports:
@@ -503,7 +503,7 @@ groups:
         annotations:
           summary: "高错误率检测"
           description: "错误率超过10%"
-      
+
       - alert: HighMemoryUsage
         expr: container_memory_usage_bytes{container="backend"} > 200 * 1024 * 1024
         for: 5m
@@ -699,6 +699,6 @@ groups:
 
 ---
 
-**文档状态**：草案  
-**最后更新**：2026年3月11日  
+**文档状态**：草案
+**最后更新**：2026年3月11日
 **下一步**：开始阶段1 MVP开发
