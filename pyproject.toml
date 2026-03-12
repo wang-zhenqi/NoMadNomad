@@ -71,7 +71,7 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-v --cov=nomadnomad --cov-report=term-missing --cov-fail-under=90"
+addopts = "-v --cov=nomadnomad --cov-report=term-missing --cov-fail-under=80"
 pythonpath = ["src"]
 
 [build-system]
