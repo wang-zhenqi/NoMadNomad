@@ -73,4 +73,4 @@ NoMadNomad/
 └── .gitignore
 ```
 
-更多说明见 [docs/project_introduction.md](docs/project_introduction.md)。
+更多说明见 [docs/project_introduction.md](docs/project_introduction.md)。迭代计划与 Sprint Backlog 见 [docs/iteration_plan.md](docs/iteration_plan.md)。
