@@ -63,6 +63,15 @@ poetry run preview-job-html
 poetry run preview-job-html --html path/to/job.html
 ```
 
+### 4.2 初始化 SQLite（Story 3 DDL）
+
+幂等建表；默认写入 `data/nomadnomad.sqlite`（可通过环境变量 `NOMADNOMAD_SQLITE_PATH` 或位置参数覆盖）。
+
+```bash
+poetry run init-sqlite-db
+poetry run init-sqlite-db /path/to/nomadnomad.sqlite
+```
+
 ### 5. 运行测试
 
 ```bash

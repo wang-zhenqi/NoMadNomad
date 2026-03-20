@@ -2,7 +2,7 @@
 
 **文档类型**：迭代计划 / Sprint Backlog
 **状态**：现行
-**最后更新**：2026-03-20（Story 2 范围冻结；延后项归入 §8 Backlog）
+**最后更新**：2026-03-20（Story 3 SQLite 数据层已落地；Story 2 范围冻结见前文）
 **对应立项文档**：[project_introduction.md](project_introduction.md)
 
 ---
@@ -136,18 +136,18 @@
 
 **验收标准：**
 
-- [ ] 具备 `projects`、`requirement_analyses`、`proposals`、`agent_runs` 四张表（字段与立项/数据设计一致；SQLite 用 `TEXT` 存 JSON 或 BLOB 视选型而定）。
-- [ ] 新增关键日志表（建议 `app_events`）：记录结构化日志关键字段（如 `event_type`、`level`、`trace_id`、`project_id`、`source`、`payload_json`、`created_at`）。
-- [ ] 提供初始化脚本或应用启动时执行 DDL，保证本地/CI 可重复建库。
-- [ ] 封装 aiosqlite 连接与基础「按 id 查询 / 插入」接口（至少 projects、requirement_analyses、proposals、agent_runs 各一例）。
-- [ ] 至少 1 个集成测试：插入后能按 id 查出且字段一致（或等价）。
+- [x] 具备 `projects`、`requirement_analyses`、`proposals`、`agent_runs` 四张表（字段与立项/数据设计一致；SQLite 用 `TEXT` 存 JSON 或 BLOB 视选型而定）。
+- [x] 新增关键日志表（建议 `app_events`）：记录结构化日志关键字段（如 `event_type`、`level`、`trace_id`、`project_id`、`source`、`payload_json`、`created_at`）。
+- [x] 提供初始化脚本或应用启动时执行 DDL，保证本地/CI 可重复建库。
+- [x] 封装 aiosqlite 连接与基础「按 id 查询 / 插入」接口（至少 projects、requirement_analyses、proposals、agent_runs 各一例）。
+- [x] 至少 1 个集成测试：插入后能按 id 查出且字段一致（或等价）。
 
 **技术任务：**
 
-- [ ] 在 `nomadnomad/db/` 下实现 DDL（可单文件或按表拆分）、连接管理（如单例或依赖注入）。
-- [ ] 实现 repositories 或类似（ProjectRepo, RequirementAnalysisRepo, ProposalRepo, AgentRunRepo）的薄封装。
-- [ ] 增加 `AppEventRepo`（或等价）用于关键日志落库。
-- [ ] 测试用内存 SQLite 或临时文件，保证无副作用。
+- [x] 在 `nomadnomad/db/` 下实现 DDL（可单文件或按表拆分）、连接管理（如单例或依赖注入）。
+- [x] 实现 repositories 或类似（ProjectRepo, RequirementAnalysisRepo, ProposalRepo, AgentRunRepo）的薄封装。
+- [x] 增加 `AppEventRepo`（或等价）用于关键日志落库。
+- [x] 测试用内存 SQLite 或临时文件，保证无副作用。
 
 **估算**：6–8 h
 **优先级**：P0
@@ -358,4 +358,4 @@
 ---
 
 **文档状态**：现行
-**下一步**：按 TDD 方式将 Backlog 顺序拆成「测试任务 -> 实现任务 -> 重构任务」，放入看板并开始 Sprint 1。
+**下一步**：按 TDD 推进 Story 4（需求分析 Agent）；Story 3 GWT 见 [`docs/bdd/story_03_sqlite_gwt.md`](bdd/story_03_sqlite_gwt.md)。

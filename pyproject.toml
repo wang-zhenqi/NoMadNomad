@@ -23,6 +23,7 @@ dependencies = [
 [project.scripts]
 serve-api = "nomadnomad.main:run_api"
 preview-job-html = "nomadnomad.cli.preview_job_html:main"
+init-sqlite-db = "nomadnomad.cli.init_sqlite:main"
 
 [tool.poetry]
 packages = [{ include = "nomadnomad", from = "src" }]

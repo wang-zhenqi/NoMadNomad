@@ -1,1 +1,21 @@
-"""数据访问层：SQLite 连接、模型与仓储."""
+"""数据访问层：SQLite DDL、连接与仓储."""
+
+from nomadnomad.db.connection import connect_file, connect_memory, init_schema
+from nomadnomad.db.repositories import (
+    AgentRunRepo,
+    AppEventRepo,
+    ProjectRepo,
+    ProposalRepo,
+    RequirementAnalysisRepo,
+)
+
+__all__ = [
+    "AgentRunRepo",
+    "AppEventRepo",
+    "ProjectRepo",
+    "ProposalRepo",
+    "RequirementAnalysisRepo",
+    "connect_file",
+    "connect_memory",
+    "init_schema",
+]
