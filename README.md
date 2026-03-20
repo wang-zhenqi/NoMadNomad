@@ -8,6 +8,7 @@ AI 驱动的自由职业者全流程项目管理工具：从 Upwork 投标到项
 - **前端**: Streamlit 1.29+
 - **AI**: LangChain + LangGraph
 - **数据**: SQLite 3.45+（可选 sqlite-vec）
+- **日志**: loguru（结构化日志 + 关键事件落库）
 
 ## 环境要求
 
@@ -54,6 +55,13 @@ poetry run streamlit run streamlit_app/app.py
 poetry run pytest
 ```
 
+## 开发规范
+
+- **TDD（强制）**: 按 `Red -> Green -> Refactor` 开发，先写失败测试，再写最小实现，最后重构。
+- **日志规范**: 统一使用 `loguru` 输出结构化日志（建议 JSON），记录关键上下文（如 `trace_id`、`project_id`、`event_type`）。
+- **关键日志落库**: 关键业务事件除控制台/文件外需持久化到 SQLite（建议 `app_events`），用于后续代码分析与运营分析。
+- **质量门禁**: 提交前需通过 `pytest` 与 pre-commit（black/isort/mypy）。
+
 ## 项目结构
 
 ```
@@ -73,4 +81,4 @@ NoMadNomad/
 └── .gitignore
 ```
 
-更多说明见 [docs/project_introduction.md](docs/project_introduction.md)。迭代计划与 Sprint Backlog 见 [docs/iteration_plan.md](docs/iteration_plan.md)。
+更多说明见 [docs/project_introduction.md](docs/project_introduction.md)。迭代计划与 Sprint Backlog 见 [docs/iteration_plan.md](docs/iteration_plan.md)。Story 1（HTML→快照）的 GWT 测试清单见 [docs/bdd/story_01_html_to_snapshot_gwt.md](docs/bdd/story_01_html_to_snapshot_gwt.md)。
