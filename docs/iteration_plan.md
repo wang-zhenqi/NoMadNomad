@@ -73,7 +73,7 @@
 **技术任务：**
 
 - [ ] 新增依赖：HTML 解析（推荐 `beautifulsoup4` + `lxml` 或 `html.parser`，在 `pyproject.toml` 中锁定）。
-- [ ] 实现模块建议：`nomadnomad/ingest/` 或 `nomadnomad/parsers/` 下 `upwork_job_card.py` + 纯函数入口。
+- [ ] 实现模块建议：领域模型放 `nomadnomad/models/`；解析入口 `nomadnomad/ingest/upwork_job_html_parser.py`；DOM 抽取按页面区块拆在 `nomadnomad/ingest/upwork/` 子包内。
 - [ ] 选择器/CSS 路径与 Upwork 前端变更风险：在代码与文档中注明「基于当前 DOM 约定」；测试用 golden 文件锁定行为。
 - [ ] 可选：`loguru` 记录 `html_parse_started` / `html_parse_completed` / `html_parse_failed`（完整落库可在故事 9 接上 `app_events`）。
 

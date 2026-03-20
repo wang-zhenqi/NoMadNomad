@@ -58,6 +58,7 @@ poetry run pytest
 ## 开发规范
 
 - **TDD（强制）**: 按 `Red -> Green -> Refactor` 开发，先写失败测试，再写最小实现，最后重构。
+- **AI 结对流程**: Cursor 已配置 **`.cursor/rules/nomadnomad-pairing.mdc`**（默认生效）；详细步骤见 **[docs/agent_playbook_tdd_refactor.md](docs/agent_playbook_tdd_refactor.md)**。根目录 **[AGENTS.md](AGENTS.md)** 为入口索引。
 - **日志规范**: 统一使用 `loguru` 输出结构化日志（建议 JSON），记录关键上下文（如 `trace_id`、`project_id`、`event_type`）。
 - **关键日志落库**: 关键业务事件除控制台/文件外需持久化到 SQLite（建议 `app_events`），用于后续代码分析与运营分析。
 - **质量门禁**: 提交前需通过 `pytest` 与 pre-commit（black/isort/mypy）。
@@ -70,7 +71,8 @@ NoMadNomad/
 │   ├── api/            # API 路由层
 │   ├── services/       # 业务逻辑层
 │   ├── agents/         # LangGraph Agent 编排与实现
-│   ├── ingest/         # HTML 等外部来源 → 结构化快照
+│   ├── models/         # 领域数据模型（Pydantic），与解析/API 分离
+│   ├── ingest/         # 解析入口；Upwork DOM 抽取见 ingest/upwork/
 │   ├── db/             # 数据访问层
 │   └── main.py         # FastAPI 入口
 ├── streamlit_app/      # Streamlit 前端

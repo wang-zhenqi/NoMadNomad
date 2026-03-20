@@ -1,0 +1,28 @@
+---
+description: NoMadNomad 结对流程 — Story → GWT → TDD → Fowler 重构，直至测试通过
+alwaysApply: true
+---
+
+# NoMadNomad AI 结对默认流程
+
+当用户要求**实现新功能、完成 Story、修 bug、或改动 `src/nomadnomad/` / `tests/`** 时，除非用户明确写「跳过 TDD」或「只改文档」，否则按 **`docs/agent_playbook_tdd_refactor.md`** 执行。
+
+## 核心顺序（不可打乱）
+
+1. **读 Story**：`docs/iteration_plan.md`（及对应 `docs/bdd/*.md` 若有）。
+2. **规划测试**：先输出 **GWT / 测试点列表**，再写代码。
+3. **TDD**：**Red**（失败测试）→ **Green**（最小实现）→ **Refactor**（小步重构）。
+4. **重构**：对照 Martin Fowler《重构》— 小步、**行为不变**；每步 **`poetry run pytest`** 保持通过。
+5. **收尾**：`poetry run mypy src/nomadnomad`（涉及类型时）、pre-commit 相关检查；用简短中文总结验收对齐情况。
+
+## 本项目硬约束
+
+- **模型**：领域用 Pydantic `BaseModel`；解析/流程内可变草稿用 **`pydantic.dataclasses.dataclass`**，不与标准库 `dataclasses` 混用。
+- **日志**：`loguru`；关键路径预留结构化字段（见 `docs/iteration_plan.md` / `project_introduction.md`）。
+- **命名**：函数参数与关键局部变量需**可自解释**，避免单字母参数（如 `d`、`raw`）。
+
+## 用户快捷指令示例
+
+- 「按 playbook 做 Story N」→ 从读 Story 到 Refactor 全流程。
+- 「只做 Red」→ 只加失败测试。
+- 「Green 即可」→ 实现到测试通过，暂缓重构。
