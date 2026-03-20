@@ -70,6 +70,7 @@ NoMadNomad/
 │   ├── api/            # API 路由层
 │   ├── services/       # 业务逻辑层
 │   ├── agents/         # LangGraph Agent 编排与实现
+│   ├── ingest/         # HTML 等外部来源 → 结构化快照
 │   ├── db/             # 数据访问层
 │   └── main.py         # FastAPI 入口
 ├── streamlit_app/      # Streamlit 前端
