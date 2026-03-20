@@ -91,7 +91,7 @@ poetry run isort src tests
 |------|------|
 | `docs/iteration_plan.md` | Backlog、DoD、日志与 TDD 约定 |
 | `docs/project_introduction.md` | 愿景、范围、技术约束 |
-| `docs/bdd/*.md` | 具体 Story 的 GWT 表 |
+| `docs/bdd/*.md` | 具体 Story 的 GWT 表（如 `story_01_*`、`story_02_*`） |
 | `README.md` | 本地命令与结构 |
 
 ---

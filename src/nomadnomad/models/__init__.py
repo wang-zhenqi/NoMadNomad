@@ -7,6 +7,8 @@ from nomadnomad.models.job_posting_snapshot import (
     JobEngagement,
     JobPostingSnapshot,
 )
+from nomadnomad.models.proposal import Proposal
+from nomadnomad.models.requirement_analysis import RequirementAnalysis
 
 __all__ = [
     "ClientProfile",
@@ -14,4 +16,6 @@ __all__ = [
     "JobBudget",
     "JobEngagement",
     "JobPostingSnapshot",
+    "Proposal",
+    "RequirementAnalysis",
 ]

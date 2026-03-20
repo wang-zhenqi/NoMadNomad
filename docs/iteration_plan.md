@@ -2,7 +2,7 @@
 
 **文档类型**：迭代计划 / Sprint Backlog
 **状态**：现行
-**最后更新**：2026-03-19（调整 Story 顺序：HTML→快照 为 Story 1）
+**最后更新**：2026-03-20（Story 2：需求分析 / 提案 Schema + `schemas` 校验入口）
 **对应立项文档**：[project_introduction.md](project_introduction.md)
 
 ---
@@ -108,16 +108,16 @@
 
 **验收标准：**
 
-- [ ] `RequirementAnalysis`（或等价）Schema 定义：含技术栈、关键需求、预算/时间线、复杂度/风险等字段；类型与必填/可选明确；**可选**与 `JobPostingSnapshot` 的关联字段（如 `source_job_uid`）。
-- [ ] `Proposal`（或等价）Schema 定义：含标题、正文（Markdown）、可选变量等；与文档中「提案」概念一致。
-- [ ] 提供校验函数或方法：给定 dict/str 可校验并返回结构化对象或清晰错误信息。
-- [ ] 至少 1 个单元测试：合法输入通过、非法输入得到预期错误。
+- [x] `RequirementAnalysis`（或等价）Schema 定义：含技术栈、关键需求、预算/时间线、复杂度/风险等字段；类型与必填/可选明确；**可选**与 `JobPostingSnapshot` 的关联字段（如 `source_job_uid`）。
+- [x] `Proposal`（或等价）Schema 定义：含标题、正文（Markdown）、可选变量等；与文档中「提案」概念一致。
+- [x] 提供校验函数或方法：给定 dict/str 可校验并返回结构化对象或清晰错误信息。
+- [x] 至少 1 个单元测试：合法输入通过、非法输入得到预期错误。
 
 **技术任务：**
 
-- [ ] 在 `nomadnomad` 下新增 `schemas/` 或 `models/`，放置 Pydantic 模型（可区分「API 请求/响应」与「领域」）。
-- [ ] 实现校验封装（如 `parse_requirement_analysis(raw: str | dict) -> RequirementAnalysis`）。
-- [ ] 编写对应单元测试。
+- [x] 在 `nomadnomad` 下新增 `schemas/` 或 `models/`，放置 Pydantic 模型（可区分「API 请求/响应」与「领域」）。
+- [x] 实现校验封装（如 `parse_requirement_analysis(raw: str | dict) -> RequirementAnalysis`）。
+- [x] 编写对应单元测试。
 
 **估算**：4–6 h
 **优先级**：P0
