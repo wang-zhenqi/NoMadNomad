@@ -81,6 +81,7 @@ data/
 logs/
 *.log
 backups/
+tmp/
 
 # ---- Jupyter ----
 .ipynb_checkpoints/
