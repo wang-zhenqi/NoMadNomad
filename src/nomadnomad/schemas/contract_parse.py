@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, TypeVar
+
+from pydantic import BaseModel
 
 from nomadnomad.models.proposal import Proposal
 from nomadnomad.models.requirement_analysis import RequirementAnalysis
+
+TDomainModel = TypeVar("TDomainModel", bound=BaseModel)
 
 
 def _coerce_mapping(raw: str | dict[str, Any], *, context_label: str) -> dict[str, Any]:
@@ -21,13 +25,21 @@ def _coerce_mapping(raw: str | dict[str, Any], *, context_label: str) -> dict[st
     return parsed
 
 
+def _parse_domain_model(
+    raw: str | dict[str, Any],
+    *,
+    model_class: type[TDomainModel],
+    context_label: str,
+) -> TDomainModel:
+    payload = _coerce_mapping(raw, context_label=context_label)
+    return model_class.model_validate(payload)
+
+
 def parse_requirement_analysis(raw: str | dict[str, Any]) -> RequirementAnalysis:
     """校验并构造 ``RequirementAnalysis``。``raw`` 为 JSON 对象字符串或已解析的 dict。"""
-    payload = _coerce_mapping(raw, context_label="requirement analysis")
-    return RequirementAnalysis.model_validate(payload)
+    return _parse_domain_model(raw, model_class=RequirementAnalysis, context_label="requirement analysis")
 
 
 def parse_proposal(raw: str | dict[str, Any]) -> Proposal:
     """校验并构造 ``Proposal``。``raw`` 为 JSON 对象字符串或已解析的 dict。"""
-    payload = _coerce_mapping(raw, context_label="proposal")
-    return Proposal.model_validate(payload)
+    return _parse_domain_model(raw, model_class=Proposal, context_label="proposal")

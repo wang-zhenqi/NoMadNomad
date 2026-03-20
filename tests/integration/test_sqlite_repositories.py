@@ -8,8 +8,11 @@ from pathlib import Path
 import pytest
 
 from nomadnomad.db import (
+    AgentRunInsertPayload,
     AgentRunRepo,
+    AppEventInsertPayload,
     AppEventRepo,
+    ProjectInsertPayload,
     ProjectRepo,
     ProposalRepo,
     RequirementAnalysisRepo,
@@ -33,9 +36,11 @@ async def test_insert_then_get_by_id_round_trip_for_all_core_tables(db_connectio
     """插入 project / 分析 / 提案 / agent_run / app_event 后按 id 读出字段一致。"""
     project_id = await ProjectRepo.insert(
         db_connection,
-        title="Demo Upwork gig",
-        listing_html="<html>…</html>",
-        listing_snapshot_json=json.dumps({"job_uid": "123", "title": "Demo"}, ensure_ascii=False),
+        row_to_insert=ProjectInsertPayload(
+            title="Demo Upwork gig",
+            listing_html="<html>…</html>",
+            listing_snapshot_json=json.dumps({"job_uid": "123", "title": "Demo"}, ensure_ascii=False),
+        ),
     )
     loaded_project = await ProjectRepo.get_by_id(db_connection, project_id)
     assert loaded_project is not None
@@ -65,14 +70,16 @@ async def test_insert_then_get_by_id_round_trip_for_all_core_tables(db_connectio
 
     agent_run_id = await AgentRunRepo.insert(
         db_connection,
-        project_id=project_id,
-        agent_type="requirement_analyzer",
-        input_payload_json=json.dumps({"prompt": "hi"}),
-        output_payload_json=json.dumps({"ok": True}),
-        success=True,
-        duration_ms=42,
-        error_message=None,
-        trace_id="trace-abc",
+        row_to_insert=AgentRunInsertPayload(
+            project_id=project_id,
+            agent_type="requirement_analyzer",
+            input_payload_json=json.dumps({"prompt": "hi"}),
+            output_payload_json=json.dumps({"ok": True}),
+            success=True,
+            duration_ms=42,
+            error_message=None,
+            trace_id="trace-abc",
+        ),
     )
     loaded_run = await AgentRunRepo.get_by_id(db_connection, agent_run_id)
     assert loaded_run is not None
@@ -85,12 +92,14 @@ async def test_insert_then_get_by_id_round_trip_for_all_core_tables(db_connectio
 
     event_id = await AppEventRepo.insert(
         db_connection,
-        event_type="html_parse_completed",
-        level="INFO",
-        trace_id="trace-abc",
-        project_id=project_id,
-        source="ingest",
-        payload_json=json.dumps({"bytes": 100}),
+        row_to_insert=AppEventInsertPayload(
+            event_type="html_parse_completed",
+            level="INFO",
+            trace_id="trace-abc",
+            project_id=project_id,
+            source="ingest",
+            payload_json=json.dumps({"bytes": 100}),
+        ),
     )
     loaded_event = await AppEventRepo.get_by_id(db_connection, event_id)
     assert loaded_event is not None
@@ -112,9 +121,7 @@ async def test_file_database_init_schema_is_idempotent(tmp_path: Path) -> None:
         await init_schema(second_connection)
         project_id = await ProjectRepo.insert(
             second_connection,
-            title="file-backed",
-            listing_html=None,
-            listing_snapshot_json=None,
+            row_to_insert=ProjectInsertPayload(title="file-backed", listing_html=None, listing_snapshot_json=None),
         )
         row = await ProjectRepo.get_by_id(second_connection, project_id)
     assert database_file.is_file()
