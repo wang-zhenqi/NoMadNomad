@@ -2,7 +2,7 @@
 
 **文档类型**：迭代计划 / Sprint Backlog
 **状态**：现行
-**最后更新**：2026-03-20（Story 2：需求分析 / 提案 Schema + `schemas` 校验入口）
+**最后更新**：2026-03-20（Story 2 范围冻结；延后项归入 §8 Backlog）
 **对应立项文档**：[project_introduction.md](project_introduction.md)
 
 ---
@@ -121,6 +121,10 @@
 
 **估算**：4–6 h
 **优先级**：P0
+
+**范围冻结（本 Sprint）：** 以当前仓库已实现的 `RequirementAnalysis`、`Proposal` 与 `parse_requirement_analysis` / `parse_proposal` 为 Story 2 的完成态。不要求 Schema 与 `JobPostingSnapshot` 字段一一对齐；**证据层**在故事 1，**归纳与标书草稿**在故事 2，关联主要靠 `source_job_uid` 及编排层同时传入快照（故事 4–6）。
+
+**刻意延后：** 更丰富的契约字段（投标问答结构化、`Proposal` 分块、客户摘要等）不扩展在当前 Story 2，统一记入 **§8 延后 Backlog**，在 Sprint 2+ 或故事 4/5/7 实施时按需拉起。
 
 ---
 
@@ -332,6 +336,24 @@
 - 任务拆解 Agent（P1）。
 - 项目管理看板（Backlog/Ready/In Progress/Done）与基础 UI（P2）。
 - 监控与告警（基础指标端点、可选 Prometheus）。
+- **契约 / Schema 增强**（与 Story 1 快照更紧耦合的字段、UI 友好分块）：详见 **§8**，不与 Sprint 1 的 Story 2 范围混做。
+
+---
+
+## 8. 延后 Backlog（自 Story 2 有意推迟）
+
+以下条目**不**作为当前 Story 2 的验收缺口；在 Agent、API 或 UI 需要更强类型约束时再开卡实现。
+
+| 主题 | 说明 | 建议落地时机 |
+|------|------|----------------|
+| **RequirementAnalysis ↔ screening** | 为 `JobPostingSnapshot.screening_questions` 增加显式分析侧字段（如每题「要点 / 拟答方向」列表，或与题目顺序对齐的 bullet），避免仅依赖 LLM 把问题塞进自由文本 | Sprint 2+，或故事 4 做结构化输出时 |
+| **RequirementAnalysis ↔ client** | 客户可信度 / 时区或合作风险提示的一句话摘要（不等同于复制 `ClientProfile`） | 故事 4 或产品化「是否值得投」时 |
+| **RequirementAnalysis 任务形状** | 成功标准、里程碑、交付物列表、假设与依赖（结构化或 `list[str]`） | Sprint 2+ |
+| **Proposal 结构化** | 对 screening 的逐条回答结构（如 `{question_excerpt, answer_markdown}` 列表）、章节大纲、`key_bullets`、显式 `references_job_uid` | 故事 5–7 或 Streamlit 需要分块编辑 / 校验时 |
+| **Proposal 校验加深** | 最小长度、建议章节标题、是否覆盖全部 screening（规则或二次 LLM） | 故事 5 或 Sprint 2 |
+| **API DTO vs 领域模型** | 请求/响应专用 Pydantic 模型，与 `models` 领域类型分离 | 故事 7 按需引入 |
+
+编排约定（直至上表落地前）：**需求分析与提案 Agent 的输入侧应保留对完整 `JobPostingSnapshot` 的访问**（或至少 `screening_questions`、`summary_text`），不把「读懂页面」全部压到当前精简版 `RequirementAnalysis` 字段里。
 
 ---
 

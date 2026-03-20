@@ -49,6 +49,20 @@ poetry run serve-api
 poetry run streamlit run streamlit_app/app.py
 ```
 
+### 4.1 预览 Story 1 + 2 流水线（HTML → 快照 → 契约）
+
+在**仓库根目录**执行（默认读取 `resources/demo/demo_requirement.html`）。若提示找不到命令，先执行一次 `poetry install` 以注册脚本入口。
+
+```bash
+poetry run preview-job-html
+```
+
+指定其它 Upwork 导出 HTML：
+
+```bash
+poetry run preview-job-html --html path/to/job.html
+```
+
 ### 5. 运行测试
 
 ```bash
@@ -73,6 +87,8 @@ NoMadNomad/
 │   ├── agents/         # LangGraph Agent 编排与实现
 │   ├── models/         # 领域数据模型（Pydantic），与解析/API 分离
 │   ├── ingest/         # 解析入口；Upwork DOM 抽取见 ingest/upwork/
+│   ├── preview/        # 本地演示：快照 → Story 2 示例载荷
+│   ├── cli/            # 命令行（如 preview-job-html）
 │   ├── db/             # 数据访问层
 │   └── main.py         # FastAPI 入口
 ├── streamlit_app/      # Streamlit 前端
