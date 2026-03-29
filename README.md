@@ -73,6 +73,16 @@ poetry run preview-requirement-analysis --html path/to/job.html
 poetry run preview-requirement-analysis --mock-llm
 ```
 
+### 4.1.2 预览 Story 4 + 5 端到端（HTML → 快照 → 需求分析 → 提案生成）
+
+在仓库根目录执行。同一默认 HTML；**同一内存库、同一 `project_id`** 上依次写入两条 `agent_runs`（需求分析 → 提案）。`--mock-llm` 时用快照推导的 JSON **两次**（先分析、后提案），不请求网络。
+
+```bash
+poetry run preview-proposal-generation
+poetry run preview-proposal-generation --html path/to/job.html
+poetry run preview-proposal-generation --mock-llm
+```
+
 ### 4.2 初始化 SQLite（Story 3 DDL）
 
 幂等建表；默认写入 `data/nomadnomad.sqlite`（可通过环境变量 `NOMADNOMAD_SQLITE_PATH` 或位置参数覆盖）。
@@ -107,7 +117,7 @@ NoMadNomad/
 │   ├── models/         # 领域数据模型（Pydantic），与解析/API 分离
 │   ├── ingest/         # 解析入口；Upwork DOM 抽取见 ingest/upwork/
 │   ├── preview/        # 本地演示：快照 → Story 2 示例载荷
-│   ├── cli/            # 命令行（preview-job-html、preview-requirement-analysis 等）
+│   ├── cli/            # 命令行（preview-job-html、preview-requirement-analysis、preview-proposal-generation 等）
 │   ├── db/             # 数据访问层
 │   └── main.py         # FastAPI 入口
 ├── streamlit_app/      # Streamlit 前端

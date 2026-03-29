@@ -13,7 +13,7 @@ alwaysApply: true
 2. **规划测试**：先输出 **GWT / 测试点列表**，并**落地为文档**：在 `docs/bdd/` 下**新建或更新**与本 Story 对应的 `story_<NN>_<topic>_gwt.md`（含 **Given / When / Then** 表、建议测试路径与 ID 如 S4-01）；**除非**用户写明「跳过 GWT 文档」或任务仅为修 typo/单测微调。然后再写代码。
 3. **TDD**：**Red**（失败测试）→ **Green**（最小实现）→ **Refactor**（小步重构）。
 4. **重构**：对照 Martin Fowler《重构》— 小步、**行为不变**；每步 **`poetry run pytest`** 保持通过。
-5. **收尾**：`poetry run mypy src/nomadnomad`（涉及类型时）、pre-commit 相关检查；用简短中文总结验收对齐情况。
+5. **收尾**：`poetry run mypy src/nomadnomad`（涉及类型时）、pre-commit 相关检查；**若本 Story 扩展了可手动验收的端到端路径**，更新 `README.md` 中的 `poetry run …` 说明，并在必要时于 `pyproject.toml` 注册新 CLI（见 `docs/agent_playbook_tdd_refactor.md` §7）；用简短中文总结验收对齐情况。
 
 ## 本项目硬约束
 

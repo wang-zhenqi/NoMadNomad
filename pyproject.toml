@@ -25,6 +25,7 @@ dependencies = [
 serve-api = "nomadnomad.main:run_api"
 preview-job-html = "nomadnomad.cli.preview_job_html:main"
 preview-requirement-analysis = "nomadnomad.cli.preview_requirement_analysis:main"
+preview-proposal-generation = "nomadnomad.cli.preview_proposal_generation:main"
 init-sqlite-db = "nomadnomad.cli.init_sqlite:main"
 
 [tool.poetry]

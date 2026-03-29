@@ -34,6 +34,7 @@
 |------|------|
 | `poetry run preview-requirement-analysis` | 默认 demo HTML，真实 LLM（需 `NOMADNOMAD_LLM_API_KEY`） |
 | `poetry run preview-requirement-analysis --mock-llm` | 离线：模拟 LLM，不请求网络 |
+| `poetry run preview-proposal-generation [--mock-llm]` | 在 Story 5 完成后：串联「分析 → 提案」端到端（见 Story 5 GWT） |
 
 ## 主要入口与类型
 

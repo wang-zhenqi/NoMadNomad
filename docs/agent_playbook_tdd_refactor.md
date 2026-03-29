@@ -75,7 +75,15 @@ poetry run isort src tests
 
 ---
 
-## 7. 回复模板（Agent 建议）
+## 7. 手动端到端预览（推荐纳入 Story DoD）
+
+- 若本 Story **扩展了用户可感知的路径**（如新 Agent、解析入口、落库环节），评估是否需要在 **`README.md`「本地开发」** 中增加或更新一条 **`poetry run …` 命令**（在 `pyproject.toml` 的 `[project.scripts]` 注册，实现放在 `src/nomadnomad/cli/`）。
+- **聚合原则**：优先在**已有预览命令上串联**新能力（例如 Story 5 完成后用 `preview-proposal-generation` 覆盖「HTML → 分析 → 提案」），避免每个小改动都新加脚本；仅当无法用现有命令合理覆盖时再新增入口。
+- **本迭代索引（随 Story 递增）**：`preview-job-html`（Story 1–2）、`init-sqlite-db`（Story 3）、`preview-requirement-analysis`（Story 4）、`preview-proposal-generation`（Story 4–5 端到端）、`serve-api`（`/health`）。
+
+---
+
+## 8. 回复模板（Agent 建议）
 
 结束时用简短中文包含：
 
@@ -83,10 +91,11 @@ poetry run isort src tests
 2. **新增或修改的测试文件**
 3. **主要代码位置**（包/模块）
 4. **若做了重构**：坏味道 → 手法 → 行为不变说明
+5. **若新增/更新了端到端预览 CLI**：写明命令与默认 demo 路径（见 §7）
 
 ---
 
-## 8. 与本仓库文档的关系
+## 9. 与本仓库文档的关系
 
 | 文档 | 用途 |
 |------|------|

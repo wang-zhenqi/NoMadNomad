@@ -182,21 +182,23 @@
 
 ### 故事 5：提案生成 Agent（单节点）
 
+**GWT**：[docs/bdd/story_05_proposal_generation_agent_gwt.md](bdd/story_05_proposal_generation_agent_gwt.md)
+
 - **作为** 用户
 - **我希望** 在已有需求分析结果的基础上，系统能生成一份提案草稿（Markdown）
 - **以便** 我只需少量编辑即可投递
 
 **验收标准：**
 
-- [ ] 实现「提案生成」单节点：输入为 `RequirementAnalysis`（或 id 查库），输出为符合 `Proposal` Schema 的 Markdown 内容。
-- [ ] 调用 LLM 时约束输出格式（如仅返回 Markdown 段落），并做基本校验（非空、长度合理）。
-- [ ] 每次调用写入 `agent_runs`。
-- [ ] 至少 1 个集成/单元测试：mock LLM 返回固定 Markdown，验证解析与写入一致。
+- [x] 实现「提案生成」单节点：输入为 `RequirementAnalysis`（或 id 查库），输出为符合 `Proposal` Schema 的 Markdown 内容。
+- [x] 调用 LLM 时约束输出格式（如仅返回 Markdown 段落），并做基本校验（非空、长度合理）。
+- [x] 每次调用写入 `agent_runs`。
+- [x] 至少 1 个集成/单元测试：mock LLM 返回固定 Markdown，验证解析与写入一致。
 
 **技术任务：**
 
-- [ ] 在 `nomadnomad/agents/` 下实现提案生成 Agent；与 AgentRunRepo 集成。
-- [ ] 与故事 2 的 Schema 对齐（Proposal 的字段与存储一致）。
+- [x] 在 `nomadnomad/agents/` 下实现提案生成 Agent；与 AgentRunRepo 集成。
+- [x] 与故事 2 的 Schema 对齐（Proposal 的字段与存储一致）。
 
 **估算**：6–10 h
 **优先级**：P0
@@ -360,4 +362,4 @@
 ---
 
 **文档状态**：现行
-**下一步**：按 TDD 推进 Story 5（提案生成 Agent）；Story 3 GWT 见 [`docs/bdd/story_03_sqlite_gwt.md`](bdd/story_03_sqlite_gwt.md)。
+**下一步**：按 TDD 推进 Story 6（LangGraph 编排「分析 → 提案」）；Story 5 GWT 见 [`docs/bdd/story_05_proposal_generation_agent_gwt.md`](bdd/story_05_proposal_generation_agent_gwt.md)。
