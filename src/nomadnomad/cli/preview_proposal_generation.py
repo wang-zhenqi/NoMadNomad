@@ -8,13 +8,13 @@ import json
 import sys
 from pathlib import Path
 
+from nomadnomad.agents.analyze_proposal_workflow import run_analyze_proposal_workflow
 from nomadnomad.agents.llm.json_chat_client import JsonCompletionClient, OpenAiCompatibleJsonChatClient
-from nomadnomad.agents.proposal_generation_agent import run_proposal_generation_agent
-from nomadnomad.agents.requirement_analysis_agent import run_requirement_analysis_agent
 from nomadnomad.config.llm_settings import LlmSettings
-from nomadnomad.db import ProjectInsertPayload, ProjectRepo, connect_memory, init_schema
+from nomadnomad.db import ProposalRepo, RequirementAnalysisRepo, connect_memory, init_schema
 from nomadnomad.ingest import HtmlParseError, parse_upwork_job_html
 from nomadnomad.preview import example_proposal_payload_from_snapshot, requirement_payload_from_snapshot
+from nomadnomad.schemas.contract_parse import parse_proposal, parse_requirement_analysis
 
 
 def _default_demo_html_path() -> Path:
@@ -65,52 +65,47 @@ async def _async_main(*, html_path: Path, use_mock_llm: bool) -> int:
 
     async with connect_memory() as connection:
         await init_schema(connection)
-        project_id = await ProjectRepo.insert(
+        workflow_outcome = await run_analyze_proposal_workflow(
             connection,
-            row_to_insert=ProjectInsertPayload(
-                title=snapshot.title or "preview-job",
-                listing_html=None,
-                listing_snapshot_json=snapshot.model_dump_json(),
-            ),
-        )
-        analysis_outcome = await run_requirement_analysis_agent(
-            connection,
-            project_id=project_id,
-            snapshot=snapshot,
             llm_client=llm_client,
+            listing_html=raw_html,
             trace_id=trace_id,
         )
-        if analysis_outcome.analysis is None:
-            print(f"需求分析失败：{analysis_outcome.error_message}", file=sys.stderr)
-            print(f"agent_run_id={analysis_outcome.agent_run_id}", file=sys.stderr)
+
+        if workflow_outcome.status == "failed_analysis":
+            print(f"需求分析失败：{workflow_outcome.error_message}", file=sys.stderr)
+            print(f"agent_run_id={workflow_outcome.requirement_analysis_agent_run_id}", file=sys.stderr)
             return 3
 
-        proposal_outcome = await run_proposal_generation_agent(
-            connection,
-            project_id=project_id,
-            requirement_analysis=analysis_outcome.analysis,
-            llm_client=llm_client,
-            trace_id=trace_id,
-        )
+        if workflow_outcome.status == "failed_proposal":
+            print(f"提案生成失败：{workflow_outcome.error_message}", file=sys.stderr)
+            print(f"agent_run_id={workflow_outcome.proposal_generation_agent_run_id}", file=sys.stderr)
+            return 4
 
-    if proposal_outcome.proposal is None:
-        print(f"提案生成失败：{proposal_outcome.error_message}", file=sys.stderr)
-        print(f"agent_run_id={proposal_outcome.agent_run_id}", file=sys.stderr)
-        return 4
+        assert workflow_outcome.requirement_analysis_id is not None
+        assert workflow_outcome.proposal_id is not None
 
-    assert analysis_outcome.analysis is not None
+        ra_row = await RequirementAnalysisRepo.get_by_id(connection, workflow_outcome.requirement_analysis_id)
+        prop_row = await ProposalRepo.get_by_id(connection, workflow_outcome.proposal_id)
+        assert ra_row is not None
+        assert prop_row is not None
+        analysis_model = parse_requirement_analysis(ra_row["analysis_json"])
+        proposal_model = parse_proposal(prop_row["proposal_json"])
 
-    _print_section("Story 4 — RequirementAnalysis（Agent 输出）")
-    _print_json(analysis_outcome.analysis.model_dump())
+    _print_section("Story 4 — RequirementAnalysis（DB 行）")
+    _print_json(analysis_model.model_dump())
 
-    _print_section("Story 5 — Proposal（Agent 输出）")
-    _print_json(proposal_outcome.proposal.model_dump())
+    _print_section("Story 5 — Proposal（DB 行）")
+    _print_json(proposal_model.model_dump())
 
-    _print_section("端到端 — agent_run 摘要")
+    _print_section("Story 6 — LangGraph 编排摘要")
     _print_json(
         {
-            "requirement_analysis_agent_run_id": analysis_outcome.agent_run_id,
-            "proposal_generation_agent_run_id": proposal_outcome.agent_run_id,
+            "project_id": workflow_outcome.project_id,
+            "requirement_analysis_id": workflow_outcome.requirement_analysis_id,
+            "proposal_id": workflow_outcome.proposal_id,
+            "requirement_analysis_agent_run_id": workflow_outcome.requirement_analysis_agent_run_id,
+            "proposal_generation_agent_run_id": workflow_outcome.proposal_generation_agent_run_id,
             "trace_id": trace_id,
             "mode": "mock_llm" if use_mock_llm else "live_llm",
         }
@@ -124,8 +119,8 @@ async def _async_main(*, html_path: Path, use_mock_llm: bool) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "读取 Upwork 职位 HTML，经 Story 1 解析后依次调用需求分析 Agent（Story 4）与提案生成 Agent（Story 5），"
-            "打印结构化结果。"
+            "读取 Upwork 职位 HTML，经 Story 1 解析后由 Story 6 LangGraph 编排「需求分析 → 提案」，"
+            "并写入 requirement_analyses / proposals；打印 DB 中结构化结果。"
         ),
     )
     parser.add_argument(

@@ -73,9 +73,9 @@ poetry run preview-requirement-analysis --html path/to/job.html
 poetry run preview-requirement-analysis --mock-llm
 ```
 
-### 4.1.2 预览 Story 4 + 5 端到端（HTML → 快照 → 需求分析 → 提案生成）
+### 4.1.2 预览 Story 4 + 5 + 6 端到端（HTML → 快照 → LangGraph：需求分析 → 提案 → 落库）
 
-在仓库根目录执行。同一默认 HTML；**同一内存库、同一 `project_id`** 上依次写入两条 `agent_runs`（需求分析 → 提案）。`--mock-llm` 时用快照推导的 JSON **两次**（先分析、后提案），不请求网络。
+在仓库根目录执行。同一默认 HTML；由 **LangGraph** 编排两节点，在同一 `project_id` 上写入 `requirement_analyses`、`proposals` 与两条 `agent_runs`（`requirement_analyzer` → `proposal_generator`）。`--mock-llm` 时用快照推导的 JSON **两次**（先分析、后提案），不请求网络。
 
 ```bash
 poetry run preview-proposal-generation

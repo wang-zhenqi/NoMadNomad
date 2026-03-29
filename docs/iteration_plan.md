@@ -213,15 +213,15 @@
 
 **验收标准：**
 
-- [ ] LangGraph 图：节点 1 为需求分析，节点 2 为提案生成；边为「分析成功 → 提案」；失败可终止并记录。
-- [ ] 输入：项目 id、**职位 HTML**、或已解析的 `JobPostingSnapshot`；若仅有 HTML 则先经故事 1 解析为快照，再创建 project 与 requirement_analysis，再生成 proposal 并写入 proposals 表。
-- [ ] 输出：返回 project_id、requirement_analysis_id、proposal_id（或最新 proposal 版本）及简要状态。
-- [ ] 至少 1 个集成测试：从粘贴 **HTML 或快照** 到生成提案并查库，mock LLM 或使用测试用 key。
+- [x] LangGraph 图：节点 1 为需求分析，节点 2 为提案生成；边为「分析成功 → 提案」；失败可终止并记录。
+- [x] 输入：项目 id、**职位 HTML**、或已解析的 `JobPostingSnapshot`；若仅有 HTML 则先经故事 1 解析为快照，再创建 project 与 requirement_analysis，再生成 proposal 并写入 proposals 表。
+- [x] 输出：返回 project_id、requirement_analysis_id、proposal_id（或最新 proposal 版本）及简要状态。
+- [x] 至少 1 个集成测试：从粘贴 **HTML 或快照** 到生成提案并查库，mock LLM 或使用测试用 key。
 
 **技术任务：**
 
-- [ ] 在 `nomadnomad/agents/` 或 `nomadnomad/services/` 下实现 graph 构建与 invoke；与 db 的 repo 在关键节点交互。
-- [ ] 确保 agent_runs 中能区分 requirement_analyzer 与 proposal_generator 两次调用。
+- [x] 在 `nomadnomad/agents/` 或 `nomadnomad/services/` 下实现 graph 构建与 invoke；与 db 的 repo 在关键节点交互。
+- [x] 确保 agent_runs 中能区分 requirement_analyzer 与 proposal_generator 两次调用。
 
 **估算**：8–10 h
 **优先级**：P0
@@ -362,4 +362,4 @@
 ---
 
 **文档状态**：现行
-**下一步**：按 TDD 推进 Story 6（LangGraph 编排「分析 → 提案」）；Story 5 GWT 见 [`docs/bdd/story_05_proposal_generation_agent_gwt.md`](bdd/story_05_proposal_generation_agent_gwt.md)。
+**下一步**：按 TDD 推进 Story 7（业务 API）；Story 6 GWT 见 [`docs/bdd/story_06_langgraph_analyze_proposal_gwt.md`](bdd/story_06_langgraph_analyze_proposal_gwt.md)。
