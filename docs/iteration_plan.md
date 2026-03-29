@@ -156,22 +156,24 @@
 
 ### 故事 4：需求分析 Agent（单节点）
 
+**GWT**：[docs/bdd/story_04_requirement_analysis_agent_gwt.md](bdd/story_04_requirement_analysis_agent_gwt.md)
+
 - **作为** 用户
 - **我希望** 输入一段 Upwork 任务描述后，系统能产出结构化的需求分析结果
 - **以便** 后续提案生成与人工编辑有据可依
 
 **验收标准：**
 
-- [ ] 实现「需求分析」单节点：输入为 **`JobPostingSnapshot` 或由其拼接的规范化文本**，输出为符合 Schema 的 `RequirementAnalysis`（或等价）。
-- [ ] 调用 LLM 时使用结构化输出（如 JSON mode 或强约束 Prompt），失败时能捕获并记录，可重试或返回明确错误。
-- [ ] 每次调用写入 `agent_runs`（agent_type、project_id、input/output、success、duration_ms、error_message 等）。
-- [ ] 至少 1 个集成/单元测试：mock LLM 返回固定 JSON，验证解析与 Schema 一致；或使用确定性 fixture。
+- [x] 实现「需求分析」单节点：输入为 **`JobPostingSnapshot` 或由其拼接的规范化文本**，输出为符合 Schema 的 `RequirementAnalysis`（或等价）。
+- [x] 调用 LLM 时使用结构化输出（如 JSON mode 或强约束 Prompt），失败时能捕获并记录，可重试或返回明确错误。
+- [x] 每次调用写入 `agent_runs`（agent_type、project_id、input/output、success、duration_ms、error_message 等）。
+- [x] 至少 1 个集成/单元测试：mock LLM 返回固定 JSON，验证解析与 Schema 一致；或使用确定性 fixture。
 
 **技术任务：**
 
-- [ ] 在 `nomadnomad/agents/` 下实现需求分析 Agent（可 LangChain + LLM，或直接 httpx 调 API）。
-- [ ] 与 `nomadnomad/db` 的 AgentRunRepo 集成，记录每次运行（依赖故事 3）。
-- [ ] 配置通过环境变量或 settings（如 API key、model name），不写死密钥。
+- [x] 在 `nomadnomad/agents/` 下实现需求分析 Agent（可 LangChain + LLM，或直接 httpx 调 API）。
+- [x] 与 `nomadnomad/db` 的 AgentRunRepo 集成，记录每次运行（依赖故事 3）。
+- [x] 配置通过环境变量或 settings（如 API key、model name），不写死密钥。
 
 **估算**：8–12 h
 **优先级**：P0
@@ -358,4 +360,4 @@
 ---
 
 **文档状态**：现行
-**下一步**：按 TDD 推进 Story 4（需求分析 Agent）；Story 3 GWT 见 [`docs/bdd/story_03_sqlite_gwt.md`](bdd/story_03_sqlite_gwt.md)。
+**下一步**：按 TDD 推进 Story 5（提案生成 Agent）；Story 3 GWT 见 [`docs/bdd/story_03_sqlite_gwt.md`](bdd/story_03_sqlite_gwt.md)。

@@ -19,10 +19,12 @@ dependencies = [
     "aiosqlite>=0.22.1",
     "httpx>=0.28.1",
     "beautifulsoup4>=4.12.0",
+    "loguru>=0.7.3",
 ]
 [project.scripts]
 serve-api = "nomadnomad.main:run_api"
 preview-job-html = "nomadnomad.cli.preview_job_html:main"
+preview-requirement-analysis = "nomadnomad.cli.preview_requirement_analysis:main"
 init-sqlite-db = "nomadnomad.cli.init_sqlite:main"
 
 [tool.poetry]
@@ -40,6 +42,7 @@ pydantic-settings = ">=2.13.1"
 aiosqlite = ">=0.22.1"
 httpx = ">=0.28.1"
 beautifulsoup4 = ">=4.12.0"
+loguru = ">=0.7.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=9.0.2"

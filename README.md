@@ -63,6 +63,16 @@ poetry run preview-job-html
 poetry run preview-job-html --html path/to/job.html
 ```
 
+### 4.1.1 预览 Story 4（HTML → 快照 → 需求分析 Agent）
+
+在仓库根目录执行。默认读取 `resources/demo/demo_requirement.html`。需已配置 `NOMADNOMAD_LLM_API_KEY`（见 `src/nomadnomad/config/llm_settings.py`）；**离线/CI** 可加 `--mock-llm`，用快照推导的 JSON 模拟 LLM，不发起 HTTP。
+
+```bash
+poetry run preview-requirement-analysis
+poetry run preview-requirement-analysis --html path/to/job.html
+poetry run preview-requirement-analysis --mock-llm
+```
+
 ### 4.2 初始化 SQLite（Story 3 DDL）
 
 幂等建表；默认写入 `data/nomadnomad.sqlite`（可通过环境变量 `NOMADNOMAD_SQLITE_PATH` 或位置参数覆盖）。
@@ -97,7 +107,7 @@ NoMadNomad/
 │   ├── models/         # 领域数据模型（Pydantic），与解析/API 分离
 │   ├── ingest/         # 解析入口；Upwork DOM 抽取见 ingest/upwork/
 │   ├── preview/        # 本地演示：快照 → Story 2 示例载荷
-│   ├── cli/            # 命令行（如 preview-job-html）
+│   ├── cli/            # 命令行（preview-job-html、preview-requirement-analysis 等）
 │   ├── db/             # 数据访问层
 │   └── main.py         # FastAPI 入口
 ├── streamlit_app/      # Streamlit 前端

@@ -25,8 +25,9 @@
    - **2+ 条失败/边界路径**（非法输入、缺字段、外部依赖失败等）
 2. 标明建议的 **测试文件路径**（如 `tests/unit/...`、`tests/integration/...`）。
 3. 与 **golden fixture**（如 `resources/demo/...`）对齐时，写清 **fixture 名称与断言字段**。
+4. **将 GWT 写入仓库**：在 `docs/bdd/` 下**新建或更新** `story_<NN>_<topic>_gwt.md`（Markdown 表格 + 与 `tests/` 的映射说明）；与 **`.cursor/rules/nomadnomad-pairing.mdc`** 第 2 步一致。纯文档勘误、与用户约定「跳过 GWT 文档」时可省略。
 
-**产出**：编号列表（如 S2-01…），便于映射到 `test_*` 函数名。
+**产出**：编号列表（如 S2-01…），便于映射到 `test_*` 函数名；且 **bdd 文档与迭代计划 Story 编号一致**。
 
 ---
 
