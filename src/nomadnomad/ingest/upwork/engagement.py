@@ -7,15 +7,27 @@ from typing import Final
 
 from bs4 import BeautifulSoup, Tag
 
-from nomadnomad.ingest.upwork.dom_utils import classes_include, read_first_text
+from nomadnomad.ingest.upwork.dom_utils import classes_include, find_strong_containing, read_first_text
 from nomadnomad.models.job_posting_snapshot import JobBudget, JobEngagement
 
 _DOLLAR_AMOUNT: Final[re.Pattern[str]] = re.compile(r"\$?\s*([\d,.]+)")
+_BUDGET_FEATURE_INDEX: Final[int] = 3
+_FEATURES_LIST_SELECTOR: Final[str] = "ul.features.list-unstyled.m-0"
 
 
 def _engagement_features_list(soup: BeautifulSoup) -> Tag | None:
-    features_ul = soup.select_one("ul.features.list-unstyled.m-0")
+    features_ul = soup.select_one(_FEATURES_LIST_SELECTOR)
     return features_ul if isinstance(features_ul, Tag) else None
+
+
+def _feature_items_from_features_list(soup: BeautifulSoup, *, min_items: int) -> list[Tag] | None:
+    features_list = _engagement_features_list(soup)
+    if features_list is None:
+        return None
+    items = [item for item in features_list.find_all("li", recursive=False) if isinstance(item, Tag)]
+    if len(items) < min_items:
+        return None
+    return items
 
 
 def _parse_two_dollar_amounts(budget_list_item: Tag) -> tuple[float, float] | None:
@@ -34,15 +46,10 @@ def _parse_two_dollar_amounts(budget_list_item: Tag) -> tuple[float, float] | No
 
 
 def extract_budget(soup: BeautifulSoup) -> JobBudget | None:
-    features_list = _engagement_features_list(soup)
-    if features_list is None:
+    feature_items = _feature_items_from_features_list(soup, min_items=4)
+    if feature_items is None:
         return None
-    feature_items = features_list.find_all("li", recursive=False)
-    if len(feature_items) < 4:
-        return None
-    budget_list_item = feature_items[3]
-    if not isinstance(budget_list_item, Tag):
-        return None
+    budget_list_item = feature_items[_BUDGET_FEATURE_INDEX]
     min_max_pair = _parse_two_dollar_amounts(budget_list_item)
     if min_max_pair is None:
         return None
@@ -54,13 +61,11 @@ def extract_budget(soup: BeautifulSoup) -> JobBudget | None:
 
 
 def extract_project_type(soup: BeautifulSoup) -> str | None:
-    for label_strong in soup.find_all("strong"):
-        if not isinstance(label_strong, Tag):
-            continue
-        if "Project Type:" not in label_strong.get_text():
-            continue
-        value_span = label_strong.find_next_sibling("span")
-        return read_first_text(value_span)
+    label_strong = find_strong_containing(soup, "Project Type:")
+    if label_strong is None:
+        return None
+    value_span = label_strong.find_next_sibling("span")
+    return read_first_text(value_span)
     return None
 
 
@@ -72,11 +77,8 @@ def _duration_text_from_strong(duration_strong: Tag) -> str | None:
 
 
 def extract_engagement(soup: BeautifulSoup) -> JobEngagement | None:
-    features_list = _engagement_features_list(soup)
-    if features_list is None:
-        return None
-    feature_items = features_list.find_all("li", recursive=False)
-    if len(feature_items) < 3:
+    feature_items = _feature_items_from_features_list(soup, min_items=3)
+    if feature_items is None:
         return None
     hours_strong = feature_items[0].find("strong")
     duration_strong = feature_items[1].find("strong")

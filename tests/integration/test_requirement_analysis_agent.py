@@ -13,23 +13,7 @@ from nomadnomad.agents.requirement_analysis_agent import (
 )
 from nomadnomad.db import AgentRunRepo, ProjectInsertPayload, ProjectRepo, connect_memory, init_schema
 from nomadnomad.models import JobPostingSnapshot
-
-
-class RecordingFakeJsonClient:
-    """按顺序返回预设 JSON 字符串，并记录调用参数。"""
-
-    def __init__(self, response_bodies: list[str]) -> None:
-        self.response_bodies = response_bodies
-        self.call_index = 0
-        self.system_prompts: list[str] = []
-        self.user_prompts: list[str] = []
-
-    async def complete_json(self, *, system_prompt: str, user_prompt: str) -> str:
-        self.system_prompts.append(system_prompt)
-        self.user_prompts.append(user_prompt)
-        body = self.response_bodies[self.call_index]
-        self.call_index += 1
-        return body
+from nomadnomad.preview import RecordingSequentialJsonClient
 
 
 def _minimal_snapshot() -> JobPostingSnapshot:
@@ -71,7 +55,7 @@ async def test_requirement_analysis_agent_success_writes_agent_run(
         db_connection,
         row_to_insert=ProjectInsertPayload(title="p1", listing_html=None, listing_snapshot_json=None),
     )
-    fake_llm = RecordingFakeJsonClient([VALID_ANALYSIS_JSON])
+    fake_llm = RecordingSequentialJsonClient([VALID_ANALYSIS_JSON])
     snapshot = _minimal_snapshot()
 
     outcome = await run_requirement_analysis_agent(
@@ -111,7 +95,7 @@ async def test_requirement_analysis_agent_invalid_llm_json_records_failure(
         row_to_insert=ProjectInsertPayload(title="p2", listing_html=None, listing_snapshot_json=None),
     )
     bad_payload = json.dumps({"technology_stack": "must_be_a_list_not_string"})
-    fake_llm = RecordingFakeJsonClient([bad_payload, bad_payload])
+    fake_llm = RecordingSequentialJsonClient([bad_payload, bad_payload])
 
     outcome = await run_requirement_analysis_agent(
         db_connection,
@@ -143,7 +127,7 @@ async def test_requirement_analysis_agent_rejects_ambiguous_inputs(db_connection
             project_id=project_id,
             snapshot=_minimal_snapshot(),
             normalized_job_text="duplicate",
-            llm_client=RecordingFakeJsonClient([VALID_ANALYSIS_JSON]),
+            llm_client=RecordingSequentialJsonClient([VALID_ANALYSIS_JSON]),
         )
 
 
@@ -156,7 +140,7 @@ async def test_requirement_analysis_agent_retries_once_after_parse_failure(
         db_connection,
         row_to_insert=ProjectInsertPayload(title="p3", listing_html=None, listing_snapshot_json=None),
     )
-    fake_llm = RecordingFakeJsonClient(["not-json-at-all", VALID_ANALYSIS_JSON])
+    fake_llm = RecordingSequentialJsonClient(["not-json-at-all", VALID_ANALYSIS_JSON])
 
     outcome = await run_requirement_analysis_agent(
         db_connection,

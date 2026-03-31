@@ -25,6 +25,7 @@ from nomadnomad.db import (
 )
 from nomadnomad.ingest import parse_upwork_job_html
 from nomadnomad.models import RequirementAnalysis
+from nomadnomad.preview import RecordingSequentialJsonClient
 
 
 def _demo_html_path() -> Path:
@@ -54,19 +55,6 @@ VALID_PROPOSAL_JSON = json.dumps(
 )
 
 
-class RecordingFakeJsonClient:
-    """按顺序返回预设 JSON 字符串，并记录调用次数。"""
-
-    def __init__(self, response_bodies: list[str]) -> None:
-        self.response_bodies = response_bodies
-        self.call_index = 0
-
-    async def complete_json(self, *, system_prompt: str, user_prompt: str) -> str:
-        body = self.response_bodies[self.call_index]
-        self.call_index += 1
-        return body
-
-
 @pytest.fixture
 async def db_connection():
     async with connect_memory() as connection:
@@ -78,7 +66,7 @@ async def db_connection():
 async def test_workflow_html_to_proposal_success_persists_rows_and_agent_types(db_connection) -> None:
     """S6-01：HTML 入口 → 双表落库；两条 agent_runs 类型正确。"""
     raw_html = _demo_html_path().read_text(encoding="utf-8")
-    fake_llm = RecordingFakeJsonClient([VALID_ANALYSIS_JSON, VALID_PROPOSAL_JSON])
+    fake_llm = RecordingSequentialJsonClient([VALID_ANALYSIS_JSON, VALID_PROPOSAL_JSON])
 
     outcome = await run_analyze_proposal_workflow(
         db_connection,
@@ -121,7 +109,7 @@ async def test_workflow_analysis_failure_skips_proposal_and_requirement_analysis
     raw_html = _demo_html_path().read_text(encoding="utf-8")
     # 非法 Schema：technology_stack 必须为 list[str]，无法用 extra=ignore 绕过
     bad = json.dumps({"technology_stack": "not_a_list"})
-    fake_llm = RecordingFakeJsonClient([bad, bad])
+    fake_llm = RecordingSequentialJsonClient([bad, bad])
 
     outcome = await run_analyze_proposal_workflow(
         db_connection,
@@ -141,7 +129,7 @@ async def test_workflow_from_job_posting_snapshot_success(db_connection) -> None
     """S6-03：仅传快照 → 成功落库。"""
     raw_html = _demo_html_path().read_text(encoding="utf-8")
     snapshot = parse_upwork_job_html(raw_html)
-    fake_llm = RecordingFakeJsonClient([VALID_ANALYSIS_JSON, VALID_PROPOSAL_JSON])
+    fake_llm = RecordingSequentialJsonClient([VALID_ANALYSIS_JSON, VALID_PROPOSAL_JSON])
 
     outcome = await run_analyze_proposal_workflow(
         db_connection,
@@ -167,7 +155,7 @@ async def test_workflow_from_existing_project_id_success(db_connection) -> None:
             listing_snapshot_json=snapshot.model_dump_json(),
         ),
     )
-    fake_llm = RecordingFakeJsonClient([VALID_ANALYSIS_JSON, VALID_PROPOSAL_JSON])
+    fake_llm = RecordingSequentialJsonClient([VALID_ANALYSIS_JSON, VALID_PROPOSAL_JSON])
 
     outcome = await run_analyze_proposal_workflow(
         db_connection,
@@ -185,7 +173,7 @@ async def test_workflow_rejects_multiple_input_sources(db_connection) -> None:
     """S6-05：多源输入 → ValueError。"""
     raw_html = _demo_html_path().read_text(encoding="utf-8")
     snapshot = parse_upwork_job_html(raw_html)
-    fake_llm = RecordingFakeJsonClient([VALID_ANALYSIS_JSON, VALID_PROPOSAL_JSON])
+    fake_llm = RecordingSequentialJsonClient([VALID_ANALYSIS_JSON, VALID_PROPOSAL_JSON])
 
     with pytest.raises(ValueError, match="exactly one"):
         await run_analyze_proposal_workflow(
@@ -201,7 +189,7 @@ async def test_workflow_proposal_failure_after_analysis_persists_requirement_ana
     """S6-06：分析成功、提案失败 → requirement_analyses 有行，无 proposals。"""
     raw_html = _demo_html_path().read_text(encoding="utf-8")
     bad_proposal = json.dumps({"title": "", "body_markdown": "x"})
-    fake_llm = RecordingFakeJsonClient([VALID_ANALYSIS_JSON, bad_proposal, bad_proposal])
+    fake_llm = RecordingSequentialJsonClient([VALID_ANALYSIS_JSON, bad_proposal, bad_proposal])
 
     outcome = await run_analyze_proposal_workflow(
         db_connection,

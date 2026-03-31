@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
-from bs4 import Tag
+from bs4 import BeautifulSoup, Tag
+
+
+def bs4_find_attrs(attrs: Mapping[str, str]) -> Any:
+    """供 ``Tag.find(..., attrs=...)`` 使用：BeautifulSoup 类型存根对 ``attrs`` 的值类型较宽且 ``dict`` 不变，纯 ``str`` 在运行时可接受。"""
+    return attrs
 
 
 def class_tokens(class_value: object) -> frozenset[str]:
@@ -34,3 +40,11 @@ def read_first_text(tag: Tag | None, *, strip: bool = True) -> str | None:
         return None
     raw_text = tag.get_text(strip=strip)
     return raw_text or None
+
+
+def find_strong_containing(soup: BeautifulSoup, substring: str) -> Tag | None:
+    """在文档中查找文本包含子串的首个 <strong> 节点。"""
+    for candidate_strong in soup.find_all("strong"):
+        if isinstance(candidate_strong, Tag) and substring in candidate_strong.get_text():
+            return candidate_strong
+    return None

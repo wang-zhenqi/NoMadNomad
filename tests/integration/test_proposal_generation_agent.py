@@ -20,23 +20,7 @@ from nomadnomad.db import (
     init_schema,
 )
 from nomadnomad.models import RequirementAnalysis
-
-
-class RecordingFakeJsonClient:
-    """按顺序返回预设 JSON 字符串，并记录调用参数。"""
-
-    def __init__(self, response_bodies: list[str]) -> None:
-        self.response_bodies = response_bodies
-        self.call_index = 0
-        self.system_prompts: list[str] = []
-        self.user_prompts: list[str] = []
-
-    async def complete_json(self, *, system_prompt: str, user_prompt: str) -> str:
-        self.system_prompts.append(system_prompt)
-        self.user_prompts.append(user_prompt)
-        body = self.response_bodies[self.call_index]
-        self.call_index += 1
-        return body
+from nomadnomad.preview import RecordingSequentialJsonClient
 
 
 def _minimal_analysis() -> RequirementAnalysis:
@@ -73,7 +57,7 @@ async def test_proposal_generation_agent_success_writes_agent_run(db_connection)
         db_connection,
         row_to_insert=ProjectInsertPayload(title="p1", listing_html=None, listing_snapshot_json=None),
     )
-    fake_llm = RecordingFakeJsonClient([VALID_PROPOSAL_JSON])
+    fake_llm = RecordingSequentialJsonClient([VALID_PROPOSAL_JSON])
     analysis = _minimal_analysis()
 
     outcome = await run_proposal_generation_agent(
@@ -110,7 +94,7 @@ async def test_proposal_generation_agent_invalid_llm_json_records_failure(db_con
         row_to_insert=ProjectInsertPayload(title="p2", listing_html=None, listing_snapshot_json=None),
     )
     bad_payload = json.dumps({"title": "", "body_markdown": "x"})
-    fake_llm = RecordingFakeJsonClient([bad_payload, bad_payload])
+    fake_llm = RecordingSequentialJsonClient([bad_payload, bad_payload])
 
     outcome = await run_proposal_generation_agent(
         db_connection,
@@ -147,7 +131,7 @@ async def test_proposal_generation_agent_rejects_ambiguous_inputs(db_connection)
             project_id=project_id,
             requirement_analysis=_minimal_analysis(),
             requirement_analysis_id=analysis_id,
-            llm_client=RecordingFakeJsonClient([VALID_PROPOSAL_JSON]),
+            llm_client=RecordingSequentialJsonClient([VALID_PROPOSAL_JSON]),
         )
 
 
@@ -163,7 +147,7 @@ async def test_proposal_generation_agent_rejects_missing_inputs(db_connection) -
         await run_proposal_generation_agent(
             db_connection,
             project_id=project_id,
-            llm_client=RecordingFakeJsonClient([VALID_PROPOSAL_JSON]),
+            llm_client=RecordingSequentialJsonClient([VALID_PROPOSAL_JSON]),
         )
 
 
@@ -180,7 +164,7 @@ async def test_proposal_generation_agent_not_found_analysis_id(db_connection) ->
             db_connection,
             project_id=project_id,
             requirement_analysis_id=999_999,
-            llm_client=RecordingFakeJsonClient([VALID_PROPOSAL_JSON]),
+            llm_client=RecordingSequentialJsonClient([VALID_PROPOSAL_JSON]),
         )
 
 
@@ -191,7 +175,7 @@ async def test_proposal_generation_agent_retries_once_after_parse_failure(db_con
         db_connection,
         row_to_insert=ProjectInsertPayload(title="p3", listing_html=None, listing_snapshot_json=None),
     )
-    fake_llm = RecordingFakeJsonClient(["not-json-at-all", VALID_PROPOSAL_JSON])
+    fake_llm = RecordingSequentialJsonClient(["not-json-at-all", VALID_PROPOSAL_JSON])
 
     outcome = await run_proposal_generation_agent(
         db_connection,
@@ -221,7 +205,7 @@ async def test_proposal_generation_agent_loads_analysis_by_id(db_connection) -> 
         project_id=project_id,
         analysis=_minimal_analysis(),
     )
-    fake_llm = RecordingFakeJsonClient([VALID_PROPOSAL_JSON])
+    fake_llm = RecordingSequentialJsonClient([VALID_PROPOSAL_JSON])
 
     outcome = await run_proposal_generation_agent(
         db_connection,

@@ -13,7 +13,11 @@ from nomadnomad.agents.llm.json_chat_client import JsonCompletionClient, OpenAiC
 from nomadnomad.config.llm_settings import LlmSettings
 from nomadnomad.db import ProposalRepo, RequirementAnalysisRepo, connect_memory, init_schema
 from nomadnomad.ingest import HtmlParseError, parse_upwork_job_html
-from nomadnomad.preview import example_proposal_payload_from_snapshot, requirement_payload_from_snapshot
+from nomadnomad.preview import (
+    SequentialJsonClient,
+    example_proposal_payload_from_snapshot,
+    requirement_payload_from_snapshot,
+)
 from nomadnomad.schemas.contract_parse import parse_proposal, parse_requirement_analysis
 
 
@@ -33,19 +37,6 @@ def _print_json(data: object) -> None:
     print(text)
 
 
-class _SequentialMockLlmJsonClient:
-    """按调用顺序返回预设 JSON 字符串（先需求分析、后提案），模拟两次 ``complete_json``。"""
-
-    def __init__(self, response_bodies: list[str]) -> None:
-        self._response_bodies = response_bodies
-        self._call_index = 0
-
-    async def complete_json(self, *, system_prompt: str, user_prompt: str) -> str:
-        body = self._response_bodies[self._call_index]
-        self._call_index += 1
-        return body
-
-
 async def _async_main(*, html_path: Path, use_mock_llm: bool) -> int:
     raw_html = html_path.read_text(encoding="utf-8")
     try:
@@ -59,7 +50,7 @@ async def _async_main(*, html_path: Path, use_mock_llm: bool) -> int:
     if use_mock_llm:
         requirement_json = json.dumps(requirement_payload_from_snapshot(snapshot), ensure_ascii=False)
         proposal_json = json.dumps(example_proposal_payload_from_snapshot(snapshot), ensure_ascii=False)
-        llm_client: JsonCompletionClient = _SequentialMockLlmJsonClient([requirement_json, proposal_json])
+        llm_client: JsonCompletionClient = SequentialJsonClient([requirement_json, proposal_json])
     else:
         llm_client = OpenAiCompatibleJsonChatClient(LlmSettings())
 

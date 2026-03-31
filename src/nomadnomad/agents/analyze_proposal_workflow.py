@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, TypedDict
+from typing import Any, Final, Literal, TypedDict
 
 import aiosqlite
 from langgraph.graph import END, START, StateGraph
@@ -18,12 +18,40 @@ from nomadnomad.agents.requirement_analysis_agent import (
     REQUIREMENT_ANALYSIS_AGENT_TYPE,
     run_requirement_analysis_agent,
 )
-from nomadnomad.db.insert_payloads import ProjectInsertPayload
-from nomadnomad.db.repositories import ProjectRepo, ProposalRepo, RequirementAnalysisRepo
-from nomadnomad.ingest import parse_upwork_job_html
 from nomadnomad.models import JobPostingSnapshot
+from nomadnomad.services.analyze_proposal_use_case import (
+    persist_proposal,
+    persist_requirement_analysis,
+    resolve_project_and_snapshot,
+)
 
 WORKFLOW_GRAPH_NAME = "analyze_and_propose"
+
+WorkflowOutcomeStatus = Literal["success", "failed_analysis", "failed_proposal"]
+
+WORKFLOW_STATUS_SUCCESS: Final[WorkflowOutcomeStatus] = "success"
+WORKFLOW_STATUS_FAILED_ANALYSIS: Final[WorkflowOutcomeStatus] = "failed_analysis"
+WORKFLOW_STATUS_FAILED_PROPOSAL: Final[WorkflowOutcomeStatus] = "failed_proposal"
+
+WORKFLOW_ERROR_REQUIREMENT_ANALYSIS_FAILED: Final[str] = "requirement_analysis_failed"
+WORKFLOW_ERROR_PROPOSAL_GENERATION_FAILED: Final[str] = "proposal_generation_failed"
+WORKFLOW_ERROR_MISSING_REQUIREMENT_ANALYSIS_ID: Final[str] = "missing_requirement_analysis_id"
+
+NODE_REQUIREMENT_ANALYSIS: Final[Literal["requirement_analysis"]] = "requirement_analysis"
+NODE_PROPOSAL_GENERATION: Final[Literal["proposal_generation"]] = "proposal_generation"
+
+STATE_PROJECT_ID: Final[Literal["project_id"]] = "project_id"
+STATE_SNAPSHOT: Final[Literal["snapshot"]] = "snapshot"
+STATE_TRACE_ID: Final[Literal["trace_id"]] = "trace_id"
+STATE_REQUIREMENT_ANALYSIS_ID: Final[Literal["requirement_analysis_id"]] = "requirement_analysis_id"
+STATE_PROPOSAL_ID: Final[Literal["proposal_id"]] = "proposal_id"
+STATE_WORKFLOW_ERROR: Final[Literal["workflow_error"]] = "workflow_error"
+STATE_REQUIREMENT_ANALYSIS_AGENT_RUN_ID: Final[Literal["requirement_analysis_agent_run_id"]] = (
+    "requirement_analysis_agent_run_id"
+)
+STATE_PROPOSAL_GENERATION_AGENT_RUN_ID: Final[Literal["proposal_generation_agent_run_id"]] = (
+    "proposal_generation_agent_run_id"
+)
 
 
 class AnalyzeProposalGraphState(TypedDict, total=False):
@@ -52,85 +80,28 @@ class AnalyzeProposalWorkflowOutcome:
     proposal_generation_agent_run_id: int | None = None
 
 
-def _validate_exactly_one_job_source(
-    *,
-    listing_html: str | None,
-    job_posting_snapshot: JobPostingSnapshot | None,
-    project_id: int | None,
-) -> None:
-    provided = sum(1 for candidate in (listing_html, job_posting_snapshot, project_id) if candidate is not None)
-    if provided != 1:
-        raise ValueError(
-            "Provide exactly one of listing_html=, job_posting_snapshot=, or project_id=",
-        )
-
-
-async def _resolve_project_and_snapshot(
-    connection: aiosqlite.Connection,
-    *,
-    listing_html: str | None,
-    job_posting_snapshot: JobPostingSnapshot | None,
-    project_id: int | None,
-) -> tuple[int, JobPostingSnapshot]:
-    _validate_exactly_one_job_source(
-        listing_html=listing_html,
-        job_posting_snapshot=job_posting_snapshot,
-        project_id=project_id,
-    )
-    if project_id is not None:
-        row = await ProjectRepo.get_by_id(connection, project_id)
-        if row is None:
-            raise ValueError(f"project_id={project_id} not found")
-        raw_snapshot = row["listing_snapshot_json"]
-        if not raw_snapshot:
-            raise ValueError(f"project_id={project_id} has no listing_snapshot_json")
-        return project_id, JobPostingSnapshot.model_validate_json(raw_snapshot)
-    if listing_html is not None:
-        snapshot = parse_upwork_job_html(listing_html)
-        new_project_id = await ProjectRepo.insert(
-            connection,
-            row_to_insert=ProjectInsertPayload(
-                title=snapshot.title or "nomadnomad-job",
-                listing_html=listing_html,
-                listing_snapshot_json=snapshot.model_dump_json(),
-            ),
-        )
-        return new_project_id, snapshot
-    assert job_posting_snapshot is not None
-    snapshot = job_posting_snapshot
-    new_project_id = await ProjectRepo.insert(
-        connection,
-        row_to_insert=ProjectInsertPayload(
-            title=snapshot.title or "nomadnomad-job",
-            listing_html=None,
-            listing_snapshot_json=snapshot.model_dump_json(),
-        ),
-    )
-    return new_project_id, snapshot
-
-
 def _route_after_requirement_analysis(state: AnalyzeProposalGraphState) -> str:
-    if state.get("workflow_error"):
+    if state.get(STATE_WORKFLOW_ERROR):
         return END
-    return "proposal_generation"
+    return NODE_PROPOSAL_GENERATION
 
 
 def _outcome_from_final_state(
     final_state: AnalyzeProposalGraphState,
 ) -> AnalyzeProposalWorkflowOutcome:
-    project_id = final_state["project_id"]
-    proposal_id = final_state.get("proposal_id")
-    requirement_analysis_id = final_state.get("requirement_analysis_id")
-    err = final_state.get("workflow_error")
-    ra_run = final_state.get("requirement_analysis_agent_run_id")
-    prop_run = final_state.get("proposal_generation_agent_run_id")
+    project_id = final_state[STATE_PROJECT_ID]
+    proposal_id = final_state.get(STATE_PROPOSAL_ID)
+    requirement_analysis_id = final_state.get(STATE_REQUIREMENT_ANALYSIS_ID)
+    err = final_state.get(STATE_WORKFLOW_ERROR)
+    ra_run = final_state.get(STATE_REQUIREMENT_ANALYSIS_AGENT_RUN_ID)
+    prop_run = final_state.get(STATE_PROPOSAL_GENERATION_AGENT_RUN_ID)
 
     if proposal_id is not None:
         return AnalyzeProposalWorkflowOutcome(
             project_id=project_id,
             requirement_analysis_id=requirement_analysis_id,
             proposal_id=proposal_id,
-            status="success",
+            status=WORKFLOW_STATUS_SUCCESS,
             error_message=None,
             requirement_analysis_agent_run_id=ra_run,
             proposal_generation_agent_run_id=prop_run,
@@ -140,7 +111,7 @@ def _outcome_from_final_state(
             project_id=project_id,
             requirement_analysis_id=None,
             proposal_id=None,
-            status="failed_analysis",
+            status=WORKFLOW_STATUS_FAILED_ANALYSIS,
             error_message=err,
             requirement_analysis_agent_run_id=ra_run,
             proposal_generation_agent_run_id=prop_run,
@@ -149,7 +120,7 @@ def _outcome_from_final_state(
         project_id=project_id,
         requirement_analysis_id=requirement_analysis_id,
         proposal_id=None,
-        status="failed_proposal",
+        status=WORKFLOW_STATUS_FAILED_PROPOSAL,
         error_message=err,
         requirement_analysis_agent_run_id=ra_run,
         proposal_generation_agent_run_id=prop_run,
@@ -165,64 +136,64 @@ def build_analyze_proposal_graph(
     async def requirement_analysis_node(state: AnalyzeProposalGraphState) -> dict[str, Any]:
         outcome = await run_requirement_analysis_agent(
             connection,
-            project_id=state["project_id"],
-            snapshot=state["snapshot"],
+            project_id=state[STATE_PROJECT_ID],
+            snapshot=state[STATE_SNAPSHOT],
             llm_client=llm_client,
-            trace_id=state.get("trace_id"),
+            trace_id=state.get(STATE_TRACE_ID),
         )
         if outcome.analysis is None:
             return {
-                "workflow_error": outcome.error_message or "requirement_analysis_failed",
-                "requirement_analysis_agent_run_id": outcome.agent_run_id,
+                STATE_WORKFLOW_ERROR: outcome.error_message or WORKFLOW_ERROR_REQUIREMENT_ANALYSIS_FAILED,
+                STATE_REQUIREMENT_ANALYSIS_AGENT_RUN_ID: outcome.agent_run_id,
             }
-        analysis_row_id = await RequirementAnalysisRepo.insert(
+        analysis_row_id = await persist_requirement_analysis(
             connection,
-            project_id=state["project_id"],
+            project_id=state[STATE_PROJECT_ID],
             analysis=outcome.analysis,
         )
         return {
-            "requirement_analysis_id": analysis_row_id,
-            "requirement_analysis_agent_run_id": outcome.agent_run_id,
+            STATE_REQUIREMENT_ANALYSIS_ID: analysis_row_id,
+            STATE_REQUIREMENT_ANALYSIS_AGENT_RUN_ID: outcome.agent_run_id,
         }
 
     async def proposal_generation_node(state: AnalyzeProposalGraphState) -> dict[str, Any]:
-        requirement_analysis_id = state.get("requirement_analysis_id")
+        requirement_analysis_id = state.get(STATE_REQUIREMENT_ANALYSIS_ID)
         if requirement_analysis_id is None:
             return {
-                "workflow_error": state.get("workflow_error") or "missing_requirement_analysis_id",
+                STATE_WORKFLOW_ERROR: state.get(STATE_WORKFLOW_ERROR) or WORKFLOW_ERROR_MISSING_REQUIREMENT_ANALYSIS_ID,
             }
         outcome = await run_proposal_generation_agent(
             connection,
-            project_id=state["project_id"],
+            project_id=state[STATE_PROJECT_ID],
             requirement_analysis_id=requirement_analysis_id,
             llm_client=llm_client,
-            trace_id=state.get("trace_id"),
+            trace_id=state.get(STATE_TRACE_ID),
         )
         if outcome.proposal is None:
             return {
-                "workflow_error": outcome.error_message or "proposal_generation_failed",
-                "proposal_generation_agent_run_id": outcome.agent_run_id,
+                STATE_WORKFLOW_ERROR: outcome.error_message or WORKFLOW_ERROR_PROPOSAL_GENERATION_FAILED,
+                STATE_PROPOSAL_GENERATION_AGENT_RUN_ID: outcome.agent_run_id,
             }
-        proposal_row_id = await ProposalRepo.insert(
+        proposal_row_id = await persist_proposal(
             connection,
-            project_id=state["project_id"],
+            project_id=state[STATE_PROJECT_ID],
             proposal=outcome.proposal,
         )
         return {
-            "proposal_id": proposal_row_id,
-            "proposal_generation_agent_run_id": outcome.agent_run_id,
+            STATE_PROPOSAL_ID: proposal_row_id,
+            STATE_PROPOSAL_GENERATION_AGENT_RUN_ID: outcome.agent_run_id,
         }
 
     builder = StateGraph(AnalyzeProposalGraphState)
-    builder.add_node("requirement_analysis", requirement_analysis_node)
-    builder.add_node("proposal_generation", proposal_generation_node)
-    builder.add_edge(START, "requirement_analysis")
+    builder.add_node(NODE_REQUIREMENT_ANALYSIS, requirement_analysis_node)
+    builder.add_node(NODE_PROPOSAL_GENERATION, proposal_generation_node)
+    builder.add_edge(START, NODE_REQUIREMENT_ANALYSIS)
     builder.add_conditional_edges(
-        "requirement_analysis",
+        NODE_REQUIREMENT_ANALYSIS,
         _route_after_requirement_analysis,
-        {END: END, "proposal_generation": "proposal_generation"},
+        {END: END, NODE_PROPOSAL_GENERATION: NODE_PROPOSAL_GENERATION},
     )
-    builder.add_edge("proposal_generation", END)
+    builder.add_edge(NODE_PROPOSAL_GENERATION, END)
     return builder.compile(name=WORKFLOW_GRAPH_NAME)
 
 
@@ -236,7 +207,7 @@ async def run_analyze_proposal_workflow(
     project_id: int | None = None,
 ) -> AnalyzeProposalWorkflowOutcome:
     """解析/加载快照后，经 LangGraph 执行分析 → 提案并落库。"""
-    resolved_project_id, snapshot = await _resolve_project_and_snapshot(
+    resolved_project_id, snapshot = await resolve_project_and_snapshot(
         connection,
         listing_html=listing_html,
         job_posting_snapshot=job_posting_snapshot,
@@ -250,9 +221,9 @@ async def run_analyze_proposal_workflow(
     log.info("analyze_proposal_workflow_started")
 
     initial: AnalyzeProposalGraphState = {
-        "project_id": resolved_project_id,
-        "snapshot": snapshot,
-        "trace_id": trace_id,
+        STATE_PROJECT_ID: resolved_project_id,
+        STATE_SNAPSHOT: snapshot,
+        STATE_TRACE_ID: trace_id,
     }
     graph = build_analyze_proposal_graph(connection, llm_client)
     final_state = await graph.ainvoke(initial)

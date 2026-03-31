@@ -4,15 +4,8 @@ from __future__ import annotations
 
 from bs4 import BeautifulSoup, Tag
 
-from nomadnomad.ingest.upwork.dom_utils import classes_include
+from nomadnomad.ingest.upwork.dom_utils import classes_include, find_strong_containing
 from nomadnomad.ingest.upwork.text import normalize_ws
-
-
-def _find_strong_containing(soup: BeautifulSoup, substring: str) -> Tag | None:
-    for candidate_strong in soup.find_all("strong"):
-        if isinstance(candidate_strong, Tag) and substring in candidate_strong.get_text():
-            return candidate_strong
-    return None
 
 
 def _mandatory_skills_container(mandatory_skills_heading: Tag) -> Tag | None:
@@ -38,7 +31,7 @@ def extract_screening_questions(soup: BeautifulSoup) -> list[str]:
 
 
 def extract_mandatory_skills(soup: BeautifulSoup) -> list[str]:
-    mandatory_skills_heading = _find_strong_containing(soup, "Mandatory skills")
+    mandatory_skills_heading = find_strong_containing(soup, "Mandatory skills")
     if mandatory_skills_heading is None:
         return []
     skills_section = _mandatory_skills_container(mandatory_skills_heading)

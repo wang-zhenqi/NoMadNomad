@@ -13,7 +13,7 @@ from nomadnomad.agents.requirement_analysis_agent import run_requirement_analysi
 from nomadnomad.config.llm_settings import LlmSettings
 from nomadnomad.db import ProjectInsertPayload, ProjectRepo, connect_memory, init_schema
 from nomadnomad.ingest import HtmlParseError, parse_upwork_job_html
-from nomadnomad.preview import requirement_payload_from_snapshot
+from nomadnomad.preview import FixedJsonClient, requirement_payload_from_snapshot
 
 
 def _default_demo_html_path() -> Path:
@@ -32,16 +32,6 @@ def _print_json(data: object) -> None:
     print(text)
 
 
-class _MockLlmJsonClient:
-    """用快照推导的契约 JSON 模拟 LLM，便于离线预览。"""
-
-    def __init__(self, json_body: str) -> None:
-        self._json_body = json_body
-
-    async def complete_json(self, *, system_prompt: str, user_prompt: str) -> str:
-        return self._json_body
-
-
 async def _async_main(*, html_path: Path, use_mock_llm: bool) -> int:
     raw_html = html_path.read_text(encoding="utf-8")
     try:
@@ -53,7 +43,7 @@ async def _async_main(*, html_path: Path, use_mock_llm: bool) -> int:
     if use_mock_llm:
         mock_payload = requirement_payload_from_snapshot(snapshot)
         mock_json = json.dumps(mock_payload, ensure_ascii=False)
-        llm_client: JsonCompletionClient = _MockLlmJsonClient(mock_json)
+        llm_client: JsonCompletionClient = FixedJsonClient(mock_json)
     else:
         llm_client = OpenAiCompatibleJsonChatClient(LlmSettings())
 

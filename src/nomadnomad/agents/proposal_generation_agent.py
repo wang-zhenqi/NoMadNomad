@@ -12,6 +12,9 @@ from pydantic import ValidationError
 from pydantic.dataclasses import dataclass
 
 from nomadnomad.agents.llm.json_chat_client import JsonCompletionClient
+from nomadnomad.agents.llm.prompts import JSON_REPAIR_SUFFIX
+from nomadnomad.agents.llm.structured_json_runner import complete_json_then_parse_with_one_repair_retry
+from nomadnomad.agents.text_utils import truncate_for_storage
 from nomadnomad.db.insert_payloads import AgentRunInsertPayload
 from nomadnomad.db.repositories import AgentRunRepo, RequirementAnalysisRepo
 from nomadnomad.models import Proposal, RequirementAnalysis
@@ -28,11 +31,6 @@ Respond with a single JSON object only (no markdown fences). The object must mat
 - template_variables: object mapping string keys to string values (optional placeholders; use {} if none)
 The proposal should address the requirement analysis: tech stack, deliverables, timeline/budget context.
 Use professional, concise language."""
-
-_USER_PROMPT_REPAIR_SUFFIX = (
-    "\n\nYour previous answer could not be parsed for the schema. "
-    "Reply with one JSON object only, no code fences, no extra text."
-)
 
 
 @dataclass
@@ -74,12 +72,6 @@ def _input_payload_dict(
         "requirement_analysis": json.loads(analysis.model_dump_json()),
         "requirement_analysis_id": requirement_analysis_id,
     }
-
-
-def _truncate_for_storage(text: str, max_chars: int = 16000) -> str:
-    if len(text) <= max_chars:
-        return text
-    return text[:max_chars] + "…(truncated)"
 
 
 def _validate_proposal_reasonable(proposal: Proposal) -> None:
@@ -145,57 +137,63 @@ async def run_proposal_generation_agent(
     )
     log.info("proposal_generation_agent_started")
 
-    for attempt_index in range(2):
-        user_prompt = base_user_prompt if attempt_index == 0 else base_user_prompt + _USER_PROMPT_REPAIR_SUFFIX
-        try:
-            last_raw_json = await llm_client.complete_json(
-                system_prompt=PROPOSAL_SYSTEM_PROMPT,
-                user_prompt=user_prompt,
-            )
-        except Exception as exc:
-            last_error = f"llm_call_failed: {exc}"
-            log.exception("proposal_generation_llm_call_failed")
-            break
+    def _parse_and_validate(raw_json: str) -> Proposal:
+        proposal = parse_proposal(raw_json)
+        _validate_proposal_reasonable(proposal)
+        return proposal
 
-        try:
-            proposal = parse_proposal(last_raw_json)
-            _validate_proposal_reasonable(proposal)
-        except (ValueError, ValidationError) as exc:
-            last_error = f"parse_failed: {exc}"
-            log.warning(
-                "proposal_generation_parse_failed",
-                attempt=attempt_index,
-                raw_excerpt=_truncate_for_storage(last_raw_json, 400),
-            )
-            if attempt_index == 0:
-                continue
-            break
-        else:
-            duration_ms = int((time.perf_counter() - started) * 1000)
-            agent_run_id = await AgentRunRepo.insert(
-                connection,
-                row_to_insert=AgentRunInsertPayload(
-                    project_id=project_id,
-                    agent_type=PROPOSAL_GENERATION_AGENT_TYPE,
-                    input_payload_json=input_payload_json,
-                    output_payload_json=proposal.model_dump_json(),
-                    success=True,
-                    duration_ms=duration_ms,
-                    error_message=None,
-                    trace_id=trace_id,
-                ),
-            )
-            log.info("proposal_generation_agent_completed", agent_run_id=agent_run_id, duration_ms=duration_ms)
-            return ProposalGenerationAgentOutcome(
-                proposal=proposal,
-                agent_run_id=agent_run_id,
+    def _on_parse_error(attempt_index: int, raw_json: str, exc: Exception) -> None:
+        log.warning(
+            "proposal_generation_parse_failed",
+            attempt=attempt_index,
+            raw_excerpt=truncate_for_storage(raw_json, 400),
+        )
+
+    try:
+        run_result = await complete_json_then_parse_with_one_repair_retry(
+            llm_client=llm_client,
+            system_prompt=PROPOSAL_SYSTEM_PROMPT,
+            base_user_prompt=base_user_prompt,
+            repair_suffix=JSON_REPAIR_SUFFIX,
+            parse=_parse_and_validate,
+            parse_exceptions=(ValueError, ValidationError),
+            on_parse_error=_on_parse_error,
+        )
+        proposal = run_result.parsed
+        last_raw_json = run_result.last_raw_json
+        last_error = run_result.error_message
+    except Exception as exc:
+        proposal = None
+        last_raw_json = None
+        last_error = f"llm_call_failed: {exc}"
+        log.exception("proposal_generation_llm_call_failed")
+
+    if proposal is not None:
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        agent_run_id = await AgentRunRepo.insert(
+            connection,
+            row_to_insert=AgentRunInsertPayload(
+                project_id=project_id,
+                agent_type=PROPOSAL_GENERATION_AGENT_TYPE,
+                input_payload_json=input_payload_json,
+                output_payload_json=proposal.model_dump_json(),
+                success=True,
+                duration_ms=duration_ms,
                 error_message=None,
-            )
+                trace_id=trace_id,
+            ),
+        )
+        log.info("proposal_generation_agent_completed", agent_run_id=agent_run_id, duration_ms=duration_ms)
+        return ProposalGenerationAgentOutcome(
+            proposal=proposal,
+            agent_run_id=agent_run_id,
+            error_message=None,
+        )
 
     duration_ms = int((time.perf_counter() - started) * 1000)
     failure_output: str | None = None
     if last_raw_json is not None:
-        failure_output = json.dumps({"llm_response_excerpt": _truncate_for_storage(last_raw_json)}, ensure_ascii=False)
+        failure_output = json.dumps({"llm_response_excerpt": truncate_for_storage(last_raw_json)}, ensure_ascii=False)
 
     agent_run_id = await AgentRunRepo.insert(
         connection,

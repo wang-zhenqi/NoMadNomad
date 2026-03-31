@@ -3,13 +3,27 @@
 from __future__ import annotations
 
 import re
+from typing import Final
 
 from bs4 import BeautifulSoup, Tag
 from pydantic.dataclasses import dataclass
 
-from nomadnomad.ingest.upwork.dom_utils import classes_include, read_first_text
+from nomadnomad.ingest.upwork.dom_utils import bs4_find_attrs, classes_include, read_first_text
 from nomadnomad.ingest.upwork.text import normalize_ws
 from nomadnomad.models.job_posting_snapshot import ClientProfile
+
+_ABOUT_CLIENT_CONTAINER_ATTR: Final[dict[str, str]] = {"data-test": "about-client-container"}
+_BUYER_RATING_TESTID: Final[dict[str, str]] = {"data-testid": "buyer-rating"}
+
+_CLIENT_LOCATION_QA: Final[dict[str, str]] = {"data-qa": "client-location"}
+_CLIENT_JOB_POSTING_STATS_QA: Final[dict[str, str]] = {"data-qa": "client-job-posting-stats"}
+_CLIENT_COMPANY_PROFILE_QA: Final[dict[str, str]] = {"data-qa": "client-company-profile"}
+_CLIENT_CONTRACT_DATE_QA: Final[dict[str, str]] = {"data-qa": "client-contract-date"}
+
+_CLIENT_SPEND_QA: Final[dict[str, str]] = {"data-qa": "client-spend"}
+_CLIENT_HOURLY_RATE_QA: Final[dict[str, str]] = {"data-qa": "client-hourly-rate"}
+_CLIENT_COMPANY_PROFILE_INDUSTRY_QA: Final[dict[str, str]] = {"data-qa": "client-company-profile-industry"}
+_CLIENT_COMPANY_PROFILE_SIZE_QA: Final[dict[str, str]] = {"data-qa": "client-company-profile-size"}
 
 
 @dataclass
@@ -46,6 +60,11 @@ class _ClientProfileDraft:
         )
 
 
+def _find_client_list_item(client_section: Tag, *, data_qa: dict[str, str]) -> Tag | None:
+    found = client_section.find("li", attrs=bs4_find_attrs(data_qa))
+    return found if isinstance(found, Tag) else None
+
+
 def _fill_payment_and_rating(draft: _ClientProfileDraft, client_section: Tag) -> None:
     draft.payment_verified = bool(client_section.select_one(".payment-verified"))
     rating_value_element = client_section.select_one(".air3-rating-value-text")
@@ -53,7 +72,7 @@ def _fill_payment_and_rating(draft: _ClientProfileDraft, client_section: Tag) ->
         rating_match = re.search(r"([\d.]+)", rating_value_element.get_text())
         if rating_match:
             draft.rating_value = float(rating_match.group(1))
-    rating_block = client_section.find(attrs={"data-testid": "buyer-rating"})
+    rating_block = client_section.find(attrs=bs4_find_attrs(_BUYER_RATING_TESTID))
     if not isinstance(rating_block, Tag):
         return
     for review_span in rating_block.find_all("span", class_=classes_include("nowrap")):
@@ -64,8 +83,8 @@ def _fill_payment_and_rating(draft: _ClientProfileDraft, client_section: Tag) ->
 
 
 def _fill_location(draft: _ClientProfileDraft, client_section: Tag) -> None:
-    location_list_item = client_section.find("li", attrs={"data-qa": "client-location"})
-    if not isinstance(location_list_item, Tag):
+    location_list_item = _find_client_list_item(client_section, data_qa=_CLIENT_LOCATION_QA)
+    if location_list_item is None:
         return
     country_strong = location_list_item.find("strong")
     draft.country = read_first_text(country_strong)
@@ -75,8 +94,8 @@ def _fill_location(draft: _ClientProfileDraft, client_section: Tag) -> None:
 
 
 def _fill_job_posting_stats(draft: _ClientProfileDraft, client_section: Tag) -> None:
-    stats_list_item = client_section.find("li", attrs={"data-qa": "client-job-posting-stats"})
-    if not isinstance(stats_list_item, Tag):
+    stats_list_item = _find_client_list_item(client_section, data_qa=_CLIENT_JOB_POSTING_STATS_QA)
+    if stats_list_item is None:
         return
     jobs_posted_strong = stats_list_item.find("strong")
     draft.jobs_posted_text = read_first_text(jobs_posted_strong)
@@ -85,34 +104,34 @@ def _fill_job_posting_stats(draft: _ClientProfileDraft, client_section: Tag) -> 
 
 
 def _fill_spend_and_rate(draft: _ClientProfileDraft, client_section: Tag) -> None:
-    spend_strong = client_section.find("strong", attrs={"data-qa": "client-spend"})
+    spend_strong = client_section.find("strong", attrs=bs4_find_attrs(_CLIENT_SPEND_QA))
     if isinstance(spend_strong, Tag):
         draft.total_spent_text = normalize_ws(spend_strong.get_text(" ", strip=True))
-    hourly_rate_strong = client_section.find("strong", attrs={"data-qa": "client-hourly-rate"})
+    hourly_rate_strong = client_section.find("strong", attrs=bs4_find_attrs(_CLIENT_HOURLY_RATE_QA))
     if isinstance(hourly_rate_strong, Tag):
         draft.avg_hourly_rate_paid_text = normalize_ws(hourly_rate_strong.get_text(" ", strip=True))
 
 
 def _fill_company_profile(draft: _ClientProfileDraft, client_section: Tag) -> None:
-    company_list_item = client_section.find("li", attrs={"data-qa": "client-company-profile"})
-    if not isinstance(company_list_item, Tag):
+    company_list_item = _find_client_list_item(client_section, data_qa=_CLIENT_COMPANY_PROFILE_QA)
+    if company_list_item is None:
         return
-    industry_strong = company_list_item.find("strong", attrs={"data-qa": "client-company-profile-industry"})
+    industry_strong = company_list_item.find("strong", attrs=bs4_find_attrs(_CLIENT_COMPANY_PROFILE_INDUSTRY_QA))
     draft.industry = read_first_text(industry_strong)
-    company_size_div = company_list_item.find("div", attrs={"data-qa": "client-company-profile-size"})
+    company_size_div = company_list_item.find("div", attrs=bs4_find_attrs(_CLIENT_COMPANY_PROFILE_SIZE_QA))
     draft.company_size_text = read_first_text(company_size_div)
 
 
 def _fill_member_since(draft: _ClientProfileDraft, client_section: Tag) -> None:
-    contract_date_list_item = client_section.find("li", attrs={"data-qa": "client-contract-date"})
-    if not isinstance(contract_date_list_item, Tag):
+    contract_date_list_item = _find_client_list_item(client_section, data_qa=_CLIENT_CONTRACT_DATE_QA)
+    if contract_date_list_item is None:
         return
     member_since_element = contract_date_list_item.find("small")
     draft.member_since_text = read_first_text(member_since_element)
 
 
 def extract_client_profile(soup: BeautifulSoup) -> ClientProfile | None:
-    client_section = soup.find(attrs={"data-test": "about-client-container"})
+    client_section = soup.find(attrs=bs4_find_attrs(_ABOUT_CLIENT_CONTAINER_ATTR))
     if not isinstance(client_section, Tag):
         return None
     draft = _ClientProfileDraft()

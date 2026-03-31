@@ -31,6 +31,10 @@ class _ActivityDraft:
         )
 
 
+def _parse_optional_int(text: str) -> int | None:
+    return int(text) if text.isdigit() else None
+
+
 def _set_proposals(draft: _ActivityDraft, value_cell_text: str) -> None:
     draft.proposals_text = value_cell_text or None
 
@@ -40,18 +44,15 @@ def _set_last_viewed(draft: _ActivityDraft, value_cell_text: str) -> None:
 
 
 def _set_interviewing(draft: _ActivityDraft, value_cell_text: str) -> None:
-    if value_cell_text.isdigit():
-        draft.interviewing_count = int(value_cell_text)
+    draft.interviewing_count = _parse_optional_int(value_cell_text)
 
 
 def _set_invites_sent(draft: _ActivityDraft, value_cell_text: str) -> None:
-    if value_cell_text.isdigit():
-        draft.invites_sent = int(value_cell_text)
+    draft.invites_sent = _parse_optional_int(value_cell_text)
 
 
 def _set_unanswered_invites(draft: _ActivityDraft, value_cell_text: str) -> None:
-    if value_cell_text.isdigit():
-        draft.unanswered_invites = int(value_cell_text)
+    draft.unanswered_invites = _parse_optional_int(value_cell_text)
 
 
 # 按「标题包含子串」匹配；顺序：先匹配更长的专属文案，避免误伤
