@@ -99,6 +99,26 @@ class RequirementAnalysisRepo:
             parameters=(analysis_id,),
         )
 
+    @staticmethod
+    async def get_latest_id_for_project(
+        connection: aiosqlite.Connection,
+        *,
+        project_id: int,
+    ) -> int | None:
+        row = await _fetch_optional_row_dict(
+            connection,
+            sql="""
+            SELECT id FROM requirement_analyses
+            WHERE project_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            parameters=(project_id,),
+        )
+        if row is None:
+            return None
+        return int(row["id"])
+
 
 class ProposalRepo:
     @staticmethod
@@ -129,6 +149,26 @@ class ProposalRepo:
             sql="SELECT id, project_id, proposal_json, created_at FROM proposals WHERE id = ?",
             parameters=(proposal_id,),
         )
+
+    @staticmethod
+    async def get_latest_id_for_project(
+        connection: aiosqlite.Connection,
+        *,
+        project_id: int,
+    ) -> int | None:
+        row = await _fetch_optional_row_dict(
+            connection,
+            sql="""
+            SELECT id FROM proposals
+            WHERE project_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            parameters=(project_id,),
+        )
+        if row is None:
+            return None
+        return int(row["id"])
 
 
 class AgentRunRepo:
